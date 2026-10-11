@@ -101,12 +101,6 @@ python main.py
 
 每个槽位 `driver=ollama` 时使用 `ollama_name`（本地 Ollama 模型名）；`driver=api` 时使用 `api_model_name` + `api_key` / `base_url`（云端 API）。
 
-## 安全与隐私
-
-- `.env`、`config/model_store.json`、`config/id_map.json` 均已被 `.gitignore` 排除，**不要**用 `git add -f` 强制加入
-- `data/`（个人日记）、`models/`（模型文件）、`store/`（运行数据）一律不入库
-- 若 API Key 曾经泄露（例如误提交进 git 历史），请立即到对应平台**轮换密钥**
-
 ## 常见问题
 
 - **页面显示"后端未连接"**：确认 8000 端口未被占用，查看 run.bat 终端日志中的报错
