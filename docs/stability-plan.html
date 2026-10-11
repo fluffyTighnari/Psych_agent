@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PsychAgent 架构稳定性诊断与提升计划</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Cpath d='M9 22 L16 8 L23 22 M11.5 17.5 L20.5 17.5' stroke='%2358a6ff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2129; --border:#30363d; --border2:#21262d;
+    --text:#e6edf3; --sub:#8b949e; --dim:#6e7681;
+    --red:#f85149; --amber:#d29922; --blue:#58a6ff; --green:#3fb950; --purple:#bc8cff;
+    --mono:'JetBrains Mono',Consolas,'Courier New',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',system-ui,-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px 80px}
+  a{color:var(--blue);text-decoration:none}
+  code{font-family:var(--mono);background:rgba(110,118,129,.15);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-size:.86em;color:#a5d6ff}
+  .muted{color:var(--sub)} .dim{color:var(--dim)}
+  /* ===== header ===== */
+  header{padding:56px 0 28px;border-bottom:1px solid var(--border);margin-bottom:32px;background:
+    radial-gradient(600px 200px at 20% 0%,rgba(88,166,255,.08),transparent),
+    radial-gradient(500px 180px at 85% 0%,rgba(61,183,255,.05),transparent)}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--blue);text-transform:uppercase;margin-bottom:14px}
+  h1{font-size:32px;font-weight:900;letter-spacing:.01em;line-height:1.3}
+  .sub{color:var(--sub);margin-top:10px;font-size:15px;max-width:820px}
+  .meta{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px;font-size:13px;color:var(--dim);font-family:var(--mono)}
+  .meta b{color:var(--sub);font-weight:500}
+  /* ===== verdict ===== */
+  .verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0 8px}
+  .vcard{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 18px 16px;border-left:3px solid var(--blue)}
+  .vcard.p0{border-left-color:var(--red)} .vcard.p1{border-left-color:var(--amber)} .vcard.p2{border-left-color:var(--green)}
+  .vcard .vt{font-size:12px;color:var(--sub);letter-spacing:.08em;margin-bottom:8px;font-weight:500}
+  .vcard .vb{font-size:14.5px;font-weight:500;line-height:1.6}
+  /* ===== section ===== */
+  section{margin-top:44px}
+  .sec-h{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:22px}
+  .sec-h .idx{font-family:var(--mono);color:var(--blue);font-size:14px;font-weight:600}
+  h2{font-size:21px;font-weight:800;letter-spacing:.01em}
+  .sec-h .note{color:var(--dim);font-size:12.5px}
+  /* ===== stat cards ===== */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .stat .n{font-size:26px;font-weight:900;font-family:var(--mono);color:var(--blue);line-height:1.1}
+  .stat .t{font-size:12.5px;color:var(--sub);margin-top:6px}
+  .stat .d{font-size:11.5px;color:var(--dim);margin-top:4px;line-height:1.5}
+  /* ===== issue cards ===== */
+  .plist{display:grid;grid-template-columns:1fr;gap:12px}
+  .iss{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+  .iss:hover{border-color:var(--border)}
+  .iss .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .tag{font-family:var(--mono);font-size:11px;font-weight:600;border-radius:4px;padding:2px 8px;letter-spacing:.04em}
+  .tag.p0{background:rgba(248,81,73,.14);color:var(--red);border:1px solid rgba(248,81,73,.35)}
+  .tag.p1{background:rgba(210,153,34,.14);color:var(--amber);border:1px solid rgba(210,153,34,.35)}
+  .tag.p2{background:rgba(88,166,255,.12);color:var(--blue);border:1px solid rgba(88,166,255,.3)}
+  .tag.arch{background:rgba(188,140,255,.12);color:var(--purple);border:1px solid rgba(188,140,255,.3)}
+  .iss .tt{font-size:16px;font-weight:700}
+  .iss .loc{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-left:auto}
+  .iss .body{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .iss .b1{font-size:13px;color:var(--sub);line-height:1.6}
+  .iss .b1 b{color:var(--text);font-weight:600}
+  .iss .fx{font-size:13px;color:var(--sub);line-height:1.6;background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px}
+  .iss .fx b{color:var(--green);font-weight:600}
+  /* ===== chart ===== */
+  #arch{width:100%;height:560px}
+  .chartbox{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .chartcap{font-size:12.5px;color:var(--dim);margin-top:10px;line-height:1.6}
+  /* ===== timeline ===== */
+  .phase{margin-bottom:26px}
+  .phase .ph-t{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .ph-badge{font-family:var(--mono);font-size:12px;font-weight:700;border-radius:6px;padding:4px 12px;color:#0d1117}
+  .b1{background:var(--red)} .b2{background:var(--amber)} .b3{background:var(--blue)}
+  .phase .ph-title{font-size:18px;font-weight:800}
+  .phase .ph-desc{font-size:13px;color:var(--sub);margin-left:auto}
+  .tl{display:grid;grid-template-columns:110px 44px 1fr;gap:0;border-top:1px solid var(--border)}
+  .tl .row{display:contents}
+  .tl .c1{grid-column:1;padding:14px 10px 14px 0;font-family:var(--mono);font-size:12.5px;color:var(--sub);border-bottom:1px solid var(--border2);vertical-align:top}
+  .tl .c2{grid-column:2;position:relative;border-bottom:1px solid var(--border2)}
+  .tl .c2::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--border);transform:translateX(-50%)}
+  .tl .dot{position:absolute;left:50%;top:22px;width:8px;height:8px;border-radius:50%;background:var(--blue);transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--bg);z-index:1}
+  .tl .dot.hi{background:var(--amber)} .tl .dot.lo{background:var(--green)}
+  .tl .c3{grid-column:3;padding:12px 0 14px 18px;border-bottom:1px solid var(--border2)}
+  .tl .c3 .task{font-size:14.5px;font-weight:600}
+  .tl .c3 .detail{font-size:12.8px;color:var(--sub);margin-top:5px;line-height:1.65}
+  .tl .c3 .detail b{color:var(--text)}
+  /* ===== decision table ===== */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:10px 12px;border:1px solid var(--border);vertical-align:top;text-align:left}
+  thead th{background:var(--panel2);color:var(--sub);font-weight:600;font-size:12.5px}
+  tbody td{background:var(--panel)}
+  td .st{font-family:var(--mono);font-size:11px;border-radius:4px;padding:1px 8px;font-weight:600}
+  .st.req{background:rgba(210,153,34,.15);color:var(--amber);border:1px solid rgba(210,153,34,.35)}
+  .st.yes{background:rgba(63,185,80,.13);color:var(--green);border:1px solid rgba(63,185,80,.35)}
+  .st.opt{background:rgba(110,118,129,.18);color:var(--sub);border:1px solid var(--border)}
+  /* ===== fixed ===== */
+  .fxgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .fxitem{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;border-left:3px solid var(--green)}
+  .fxitem .ft{font-size:14px;font-weight:700}
+  .fxitem .fd{font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.6}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--border);color:var(--dim);font-size:12.5px;font-family:var(--mono);line-height:1.9}
+  @media(max-width:900px){.verdict{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.iss .body{grid-template-columns:1fr}.fxgrid{grid-template-columns:1fr}.tl{grid-template-columns:76px 30px 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Architecture Review &amp; Stability Plan</div>
+  <h1>PsychAgent 架构稳定性诊断与提升计划</h1>
+  <p class="sub">针对近期连环故障（模型切换不生效、404 模型缺失、检索文件找不到、过往记录消失、后端启动失败）的根因排查结论，以及一份按优先级可落地的稳定性提升计划。</p>
+  <div class="meta">
+    <span>项目：<b>C:\Users\lilex\Desktop\Code\phy\psych_agent</b></span>
+    <span>审查范围：<b>101 个源文件（全量通读核心 40+ 文件）</b></span>
+    <span>审查日期：<b>2026-09-13</b></span>
+  </div>
+</header>
+
+<div class="verdict">
+  <div class="vcard p0"><div class="vt">P0 · 架构级（先修）</div><div class="vb">全局单例会话无并发保护、模块级缓存永不刷新、LLM 调用无异常兜底、SSE 伪流式且错误不可见 —— 共 5 项</div></div>
+  <div class="vcard p1"><div class="vt">P1 · 健壮性（次修）</div><div class="vb">sqlite 并发写锁风险、多步持久化无事务、preprocess 增量失效、trace 长连接内存增长 —— 共 7 项</div></div>
+  <div class="vcard p2"><div class="vt">P2 · 冗余清理（顺带）</div><div class="vb">根目录临时脚本残留、双依赖清单、死代码、非业务文件混入 —— 共 8 项</div></div>
+</div>
+
+<section>
+  <div class="sec-h"><span class="idx">01</span><h2>现状速览（已核实的基线事实）</h2><span class="note">全部经代码通读与文件系统实测确认</span></div>
+  <div class="stats">
+    <div class="stat"><div class="n">101</div><div class="t">源文件（.py/.js/.html/.json）</div><div class="d">api/ 9 · core/ 26 · config/ 8 · web/ 10 · 根脚本 10+</div></div>
+    <div class="stat"><div class="n">11 / 6</div><div class="t">知识文档 / 历史记忆</div><div class="d">知识 11 篇（Daily 1 + Weekly 10），记忆 6 条，store 数据完整</div></div>
+    <div class="stat"><div class="n">C↔D</div><div class="t">同一挂载路径</div><div class="d">C 盘路径解析至 D 盘同一存储位置；非两份拷贝，无分叉风险</div></div>
+    <div class="stat"><div class="n">6</div><div class="t">进程级全局单例</div><div class="d">SESSION_STATE · GLOBAL_TRACKER · KNOWLEDGE_CACHE · MEMORY_CACHE · GLOBAL_MODEL · LLM 惰性缓存</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="idx">02</span><h2>问题清单（按严重度分级）</h2><span class="note">每项给出证据位置、现象、影响与修复方向</span></div>
+
+  <h3 style="font-size:16px;font-weight:800;color:var(--red);margin:8px 0 14px">P0 · 架构级 —— 影响可用性与数据正确性</h3>
+  <div class="plist">
+    <div class="iss">
+      <div class="head"><span class="tag p0">P0-1</span><span class="tag arch">并发</span><span class="tt">会话状态全局单例，无并发保护、无会话隔离</span><span class="loc">core/meta_db/context_meta.py · api/chat.py · api/state.py</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>SESSION_STATE</code> 为进程级单例（<code>id=1</code> 唯一约束），所有请求共享 <code>full_chat_history / guided_reasons / similar_memories / referenced_doc_ids</code>；<code>agent_service_entry</code> 读改写无锁；SSE 把同步入口丢进线程池，<b>并发聊天会互相覆盖会话状态</b>。</div>
+        <div class="fx"><b>修复方向：</b>最小侵入：全局 <code>threading.RLock</code> 包住会话读写与 <code>save_state</code>；再进一步按 session_id 做映射隔离（多会话各自独立状态）。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p0">P0-2</span><span class="tag arch">缓存</span><span class="tt">知识/记忆缓存为启动快照，运行期永不刷新</span><span class="loc">core/helper/knowledge_cache.py · memory_cache.py · core/tools.py</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>KNOWLEDGE_CACHE / MEMORY_CACHE</code> 在 import 时一次性加载；<code>summarize_memory()</code> 写入新记忆后<b>不更新 MEMORY_CACHE</b>，网页"历史记忆"查不到刚总结的内容直到重启；save_daily/weekly 只写源 .md，新文章不进检索库；<code>/preprocess</code> 跑完全流程也不回填内存缓存。与已修的 LLM 缓存是<b>同一类架构债</b>。</div>
+        <div class="fx"><b>修复方向：</b>为两个缓存增加 <code>reload()</code>，在 summarize / preprocess / save 成功后统一回填；所有"写入后生效"的入口收敛到同一刷新函数。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p0">P0-3</span><span class="tag arch">异常</span><span class="tt">LLM 调用链无统一异常兜底，一次失败全链路 500</span><span class="loc">core/agent.py · core/helper/RAG_agent.py · core/tools.py</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>agent_executor.invoke</code>、<code>_is_counseling</code> 预分类、<code>RAG_agent.chat</code>、<code>guided_reasoning</code>、<code>_auto_advise</code> 全部裸调 LLM；模型 API 超时/报错即抛异常 → <code>catch_exception</code> 返回 <code>500 服务内部异常: …</code> 直出给前端（用户已多次见到）。预分类失败时也没有降级路径。</div>
+        <div class="fx"><b>修复方向：</b>LLM 封装增加超时 + 一次性重试；各入口 try/except 返回结构化错误；<code>_is_counseling</code> 失败降级为直接走 counseling 而非中断请求。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p0">P0-4</span><span class="tag arch">流式</span><span class="tt">SSE 是"伪流式"：先全量阻塞再逐字播放，错误不可见</span><span class="loc">api/chat.py:22-47 · api/trace.py:25-38</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>/chat/stream</code> 的 generator 无 try/except，<code>agent_service_entry</code> 抛错时流直接断开、前端收不到任何错误事件；<code>GLOBAL_TRACKER.clear_trace()</code> 在生成器内执行，并发下互相清空；回答并非真正的逐 token 生成，延迟无改善。</div>
+        <div class="fx"><b>修复方向：</b>SSE 全程 try/except 并推送 <code>error</code> 事件；clear 移到请求开始前；后续可选接入 LLM stream 实现真流式。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p0">P0-5</span><span class="tag arch">数据</span><span class="tt">文档字段假设脆弱：emotion 缺键 / summary 非文本即崩</span><span class="loc">core/meta_db/knowledge_meta.py:141-143 · core/helper/RAG_agent.py:30,44</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>doc.emotion["primary"] / ["intensity"]</code> 直接下标访问；<code>document_loader</code> 失败仍返回 <code>{}</code>（dict）混入缓存，下游 <code>doc.summary</code> 触发 <code>'dict' object has no attribute 'summary'</code> —— 与历史故障同根的另一条未堵路径。</div>
+        <div class="fx"><b>修复方向：</b>全部改 <code>.get()</code> 兜底；<code>load_document</code> 失败返回 <code>None</code> 并过滤（knowledge_loader 已修，document_loader 对齐）。</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:16px;font-weight:800;color:var(--amber);margin:26px 0 14px">P1 · 健壮性 —— 影响一致性与资源占用</h3>
+  <div class="plist">
+    <div class="iss">
+      <div class="head"><span class="tag p1">P1-1</span><span class="tag arch">存储</span><span class="tt">sqlite 无 WAL / busy_timeout，并发写可能锁库</span><span class="loc">core/meta_db/*.py（4 处 _get_conn）</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b>每次操作新建连接、<code>check_same_thread=False</code>、无 <code>busy_timeout</code>、默认 journal 模式；SSE 线程池 + 定时总结并发写时有 <code>database is locked</code> 风险。</div>
+        <div class="fx"><b>修复方向：</b>统一连接工厂：<code>PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;</code>；写操作包事务。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p1">P1-2</span><span class="tag arch">一致性</span><span class="tt">多步持久化无事务：总结/预处理中途失败即数据不一致</span><span class="loc">core/tools.py summarize_memory · api/tool.py /preprocess</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>summarize_memory</code> 写 JSON → 向量库 → 元数据库三步，任一步失败留半套数据；<code>/preprocess</code> 全量重建无回滚，失败时新旧混杂。</div>
+        <div class="fx"><b>修复方向：</b>按"文件先行（可恢复）→ 向量/元数据尽力同步 + 失败告警"排序；preprocess 用临时目录替换 + 完成后刷新缓存。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p1">P1-3</span><span class="tag arch">增量</span><span class="tt">preprocess 遇已存在 JSON 直接跳过：源文档更新不生效</span><span class="loc">core/helper/preprocessor.py:143-149</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>os.path.exists(target_json_path)</code> 即跳过，无 mtime/hash 比对；用户修改 Daily/Weekly 的 .md 后，<b>知识库内容永远是旧版</b>。</div>
+        <div class="fx"><b>修复方向：</b>记录源文件 mtime/hash，变更才重处理；同时校验 date 字段生成逻辑（当前代码对 daily 的 date 处理有隐患，见 P2-3）。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p1">P1-4</span><span class="tag arch">资源</span><span class="tt">trace 日志无限增长 + SSE 每 0.4s 全量轮询</span><span class="loc">core/helper/trace_tracker.py · api/trace.py:25-38</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>/trace/stream</code> 对每条长连接每 0.4s 全量拷贝 <code>get_all_trace()</code>，trace 列表无上限；<code>clear_trace</code> 后 <code>last_index</code> 失配导致该连接永久断更。</div>
+        <div class="fx"><b>修复方向：</b>trace 环形上限（如 500 条）+ clear 后 SSE 重置游标；前端只拉增量。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p1">P1-5</span><span class="tag arch">配置</span><span class="tt">main.py 硬编码 reload=True + 静态目录相对路径</span><span class="loc">main.py</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>uvicorn.run(reload=True)</code> 在文件变动时重启进程（历史故障诱因之一）；<code>StaticFiles(directory="web")</code> 依赖工作目录，从其他路径启动即前端 404。</div>
+        <div class="fx"><b>修复方向：</b>reload 由环境变量/CLI 控制（开发默认开、运行默认关）；静态目录用 <code>BASE_DIR/web</code> 绝对路径。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p1">P1-6</span><span class="tag arch">数据</span><span class="tt">检索召回面窄：BM25 只索引标签、向量库只存向量不存文本</span><span class="loc">core/helper/BM25.py:41-57 · core/vector_db/documents_vector_db.py:58-61</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b>BM25 语料 = topic×3 + keywords×1（正文词召回不到）；chroma upsert 未传 <code>documents/metadatas</code>，检索结果全依赖 KNOWLEDGE_CACHE 反查，缓存过期即结果错位。</div>
+        <div class="fx"><b>修复方向：</b>BM25 语料加入 summary/content 分词；向量库写入时附带 <code>documents</code>，反查失败时可直接用库内文本兜底。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p1">P1-7</span><span class="tag arch">安全</span><span class="tt">保存文章文件名未清洗，存在路径穿越</span><span class="loc">api/tool.py save_daily / save_weekly</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>custom_filename / filename</code> 直接拼 <code>DAILY_DIR / file_name</code>，传入 <code>..\evil.md</code> 可写出目标目录。</div>
+        <div class="fx"><b>修复方向：</b>只取 <code>os.path.basename</code> 并限制字符集；限制内容长度。</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:16px;font-weight:800;color:var(--blue);margin:26px 0 14px">P2 · 冗余与卫生 —— 降低维护成本</h3>
+  <div class="plist">
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-1</span><span class="tt">根目录临时脚本残留（此前删除未彻底）</span><span class="loc">项目根</span> <span class="st req">⚠ 受阻：OneDrive 云端恢复</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b>实测仍在：<code>.patch_tools.py / .patch_tool.py / .patch_tool2.py / .patch_model_config.py / .patch_knowledge_loader.py / .rebuild_id_map.py / .fix_runbat.py / del_probe.txt</code>（build/dist/dist_diag 已删）。</div>
+        <div class="fx"><b>修复方向：</b>批量清理并 C/D 双侧核验（历史删除多次"假成功"）。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-2</span><span class="tt">双依赖清单 + 重复项 + 未用依赖</span><span class="loc">requirements.txt · pyproject.toml</span> <span class="st yes">✓ 已完成</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b>fastapi / sse-starlette / langchain-openai 各重复 2 次；<code>gradio</code> 未使用；pyproject 的 <code>psych-agent = "main:app"</code> 入口指向 FastAPI 对象（不可执行）。</div>
+        <div class="fx"><b>修复方向：</b>requirements 去重 + 版本锁定；移除 gradio；pyproject 入口修正或删除。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-3</span><span class="tt">preprocessor 对 daily 日期字段的处理有隐患</span><span class="loc">core/helper/preprocessor.py:167-169</span> <span class="st yes">✓ 已完成（阶段二）</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>filename.replace(".", "-")</code> 会把 <code>.md</code> 变成 <code>-md</code> 再经 <code>splitext</code> 产生异常值；当前存量 JSON 的 date 正常（<code>2026-7-11</code>），但<b>重新预处理新文件时会写坏</b>。</div>
+        <div class="fx"><b>修复方向：</b>先 <code>splitext</code> 再去扩展名，再替换分隔符。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-4</span><span class="tt">重复代码：JSON 清洗逻辑三处拷贝</span><span class="loc">preprocessor.py · session_summarizer.py · prompt_optimizer.py</span> <span class="st yes">✓ 已完成</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b>三家各自实现"去代码块、压缩空白、括号配对、JSON 解析"逻辑，且清洗激进（<code>re.sub(r"\s+","")</code> 会删字符串内空格）。</div>
+        <div class="fx"><b>修复方向：</b>抽公共 <code>core/helper/json_extract.py</code>，统一"宽松清洗 + 校验兜底"。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-5</span><span class="tt">死代码与冗余调用</span><span class="loc">core/tools.py:487 · core/schema.py · core/embedding/embedding.py</span> <span class="st yes">✓ 已完成</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>tools.py</code> 在 summarize 内部已写文件后又调一次 <code>_write_memory_json</code>（双重 IO）；<code>create_document/create_memory/create_knowledge</code> 为 dataclass 冗余封装；embedding 的 <code>doc_type=="principle"</code> 是死分支（项目无此类型）。</div>
+        <div class="fx"><b>修复方向：</b>删除重复调用与死分支；工厂函数保留（可读性）或移除，择一。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-6</span><span class="tt">非业务文件混入项目根</span><span class="loc">SKILL.md · references/</span> <span class="st yes">✓ 已完成（核验已不在根目录）</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b>根目录 <code>SKILL.md</code> 是"前端美学设计技能"说明，<code>references/</code> 是设计参考素材，与 psych_agent 业务无关。</div>
+        <div class="fx"><b>修复方向：</b>移出项目根归档，避免误打包。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-7</span><span class="tt">调试噪音：print 直出 + 控制台开关默认开</span><span class="loc">core/tools.py:295 · core/helper/trace_tracker.py</span> <span class="st yes">✓ 已完成</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>print(prompt)</code> 打印完整 prompt 到服务日志；<code>enable_console_print=True</code> 默认输出全部 trace，日志膨胀。</div>
+        <div class="fx"><b>修复方向：</b>print 改 trace 或 logging；控制台输出默认关闭。</div>
+      </div>
+    </div>
+    <div class="iss">
+      <div class="head"><span class="tag p2">P2-8</span><span class="tt">命名与配置细节</span><span class="loc">config/path_config.py · config/model_config.py</span> <span class="st yes">✓ 已完成</span></div>
+      <div class="body">
+        <div class="b1"><b>证据：</b><code>BM25_DIR</code> 实为文件路径（命名误导）；<code>LARGE/SMALL/CHAT_MODEL_NAME</code> import 时快照，改配置不更新（当前无引用但属地雷）；<code>_inject_env</code> 仅支持 DEEPSEEK_*，.env 中的 QWEN_* 不会被注入。</div>
+        <div class="fx"><b>修复方向：</b>改名 <code>BM25_PATH</code>；移除或动态化快照常量；<code>_inject_env</code> 支持按 driver 选择 KEY/BASE_URL 前缀。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="idx">03</span><h2>架构关系与全局单例风险点</h2><span class="note">红色为进程级共享状态（并发风险），蓝色为数据流</span></div>
+  <div class="chartbox">
+    <div id="arch"></div>
+    <div class="chartcap">数据流：前端 → api/ → core/（agent → RAG_agent → retriever → 检索/排序）→ LLM/Ollama；检索结果与知识反查均经过 KNOWLEDGE_CACHE，该缓存为启动快照 —— 这是"历史记忆查不到新数据"与"检索结果错位"的共同根源。</div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="idx">04</span><h2>稳定性提升计划（分三阶段落地）</h2><span class="note">每项均含改动点、风险与验证方式；默认低风险增量式推进，不做激进重构</span></div>
+
+  <div class="phase">
+    <div class="ph-t"><span class="ph-badge b1">阶段一</span><span class="ph-title">止血（建议本周完成）</span><span class="ph-desc">目标：不再出现"服务内部异常"与数据错乱</span></div>
+    <div class="tl">
+      <div class="row"><div class="c1">1-2 小时</div><div class="c2"><span class="dot hi"></span></div><div class="c3"><div class="task">统一 LLM 调用异常兜底（P0-3）</div><div class="detail">LLM 封装加超时 + 一次性重试；<b>所有 LLM/检索入口 try/except 返回结构化错误</b>；<code>_is_counseling</code> 失败降级为直接咨询，不中断请求。<b>验证：</b>关停 Ollama 后发起对话，应返回友好错误而非 500 裸异常。</div></div></div>
+      <div class="row"><div class="c1">1 小时</div><div class="c2"><span class="dot hi"></span></div><div class="c3"><div class="task">SSE 错误可见 + clear 时机修正（P0-4）</div><div class="detail"><code>/chat/stream</code> 全程 try/except 推送 <code>error</code> 事件；<code>clear_trace</code> 移到请求开始前。<b>验证：</b>制造 LLM 错误，前端应收到明确错误文案而非断流。</div></div></div>
+      <div class="row"><div class="c1">2 小时</div><div class="c2"><span class="dot hi"></span></div><div class="c3"><div class="task">会话状态并发保护（P0-1）</div><div class="detail">模块级 <code>threading.RLock</code> 包住 SESSION_STATE 读改写与 <code>save_state</code>；<code>/session/clear</code> 同步加锁。<b>验证：</b>两标签页并发发消息，会话内容不互相覆盖。</div></div></div>
+      <div class="row"><div class="c1">1 小时</div><div class="c2"><span class="dot hi"></span></div><div class="c3"><div class="task">字段访问防御（P0-5）</div><div class="detail"><code>emotion</code> 全部改 <code>.get()</code> 兜底；<code>document_loader.load_document</code> 失败返回 None 并过滤（与 knowledge_loader 对齐）。<b>验证：</b>手工置入缺 emotion 字段的 JSON，检索应跳过该文档而非 500。</div></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="ph-t"><span class="ph-badge b2">阶段二</span><span class="ph-title">一致性（下周）</span><span class="ph-desc">目标：数据写入即生效、重启不丢状态</span></div>
+    <div class="tl">
+      <div class="row"><div class="c1">2-3 小时</div><div class="c2"><span class="dot"></span></div><div class="c3"><div class="task">缓存体系统一刷新（P0-2）</div><div class="detail">KNOWLEDGE_CACHE / MEMORY_CACHE 增加 <code>reload()</code>；在 <code>summarize_memory</code>、<code>/preprocess</code>、save_daily/weekly 成功后统一回填；保证 <code>/memory/all</code>、记忆检索立即看到新数据。<b>验证：</b>总结一条新记忆后不重启，网页历史记忆立即出现。</div></div></div>
+      <div class="row"><div class="c1">1-2 小时</div><div class="c2"><span class="dot"></span></div><div class="c3"><div class="task">sqlite 连接工厂统一（P1-1）</div><div class="detail">WAL + busy_timeout=5000 + 写事务封装，四个 meta_db 共用。<b>验证：</b>并发请求 + 总结同时进行，日志无 database is locked。</div></div></div>
+      <div class="row"><div class="c1">2 小时</div><div class="c2"><span class="dot"></span></div><div class="c3"><div class="task">多步持久化排序 + preprocess 增量（P1-2/P1-3）</div><div class="detail">先写文件（可恢复）再同步向量/元数据；preprocess 按源文件 mtime/hash 决定是否重处理，完成后刷新缓存与 id_map。<b>验证：</b>修改一篇 Weekly .md 后重跑 preprocess，检索到新内容且 date 字段正确。</div></div></div>
+      <div class="row"><div class="c1">1 小时</div><div class="c2"><span class="dot"></span></div><div class="c3"><div class="task">trace 截断 + SSE 游标修复（P1-4）</div><div class="detail">环形上限 500 条；clear 后 SSE 游标归零；前端增量拉取。<b>验证：</b>长时间使用后内存平稳；clear 后流式日志继续工作。</div></div></div>
+      <div class="row"><div class="c1">1 小时</div><div class="c2"><span class="dot"></span></div><div class="c3"><div class="task">启动配置参数化（P1-5）</div><div class="detail">reload 由环境变量 <code>RELOAD=1</code> 控制；StaticFiles 用 <code>BASE_DIR/web</code> 绝对路径。<b>验证：</b>从任意目录 <code>python C:\...\main.py</code> 启动，前端可访问。</div></div></div>
+      <div class="row"><div class="c1">1 小时</div><div class="c2"><span class="dot"></span></div><div class="c3"><div class="task">文件名清洗（P1-7）</div><div class="detail">save_daily/save_weekly 只取 basename + 字符集白名单 + 长度上限。<b>验证：</b>提交 <code>../x.md</code> 被拒绝。</div></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="ph-t"><span class="ph-badge b3">阶段三</span><span class="ph-title">瘦身（已完成，P2-1 受阻）</span><span class="ph-desc">目标：降低维护成本，消除隐患 —— P2-2/3/4/5/6/7/8 已完成并验证</span></div>
+    <div class="tl">
+      <div class="row"><div class="c1">30 分钟</div><div class="c2"><span class="dot lo"></span></div><div class="c3"><div class="task">清理根目录残留（P2-1） <span class="st req">⚠ OneDrive 恢复，需手动</span></div><div class="detail">根因：OneDrive.Sync.Service 正在同步 Desktop 目录，任何删除/移动 3-5 秒内被云端恢复（历史"假成功"根因）。处置：暂停 OneDrive 同步后删除，或资源管理器删除时选"删除云端副本"。文件清单：8 个残留脚本 + 2 个冒烟临时脚本。</div></div></div>
+      <div class="row"><div class="c1">30 分钟</div><div class="c2"><span class="dot lo"></span></div><div class="c3"><div class="task">依赖治理（P2-2） <span class="st yes">✓</span></div><div class="detail">requirements 去重 + 19 项锁版本、移除 gradio（代码零引用）；pyproject 删除不可执行 scripts 入口。</div></div></div>
+      <div class="row"><div class="c1">1 小时</div><div class="c2"><span class="dot lo"></span></div><div class="c3"><div class="task">重复逻辑收敛（P2-4/P2-5/P2-3） <span class="st yes">✓</span></div><div class="detail">JSON 清洗抽公共 core/helper/json_extract.py（4 函数，10/10 冒烟通过）；删除 KnowledgeContext/create_knowledge 死代码与 principle 死分支；日期逻辑阶段二已修。</div></div></div>
+      <div class="row"><div class="c1">30 分钟</div><div class="c2"><span class="dot lo"></span></div><div class="c3"><div class="task">非业务文件移出（P2-6）+ 调试噪音收敛（P2-7） <span class="st yes">✓</span></div><div class="detail">SKILL.md/references 已不在根目录；print(prompt) 已删；GLOBAL_TRACKER 控制台输出默认关。</div></div></div>
+      <div class="row"><div class="c1">1 小时</div><div class="c2"><span class="dot lo"></span></div><div class="c3"><div class="task">命名与配置细节（P2-8） <span class="st yes">✓</span></div><div class="detail">BM25_DIR→BM25_PATH（6 处引用全改）；快照常量删除 + 启动脚本动态读 GLOBAL_MODEL；_inject_env 支持 DEEPSEEK/QWEN/OPENAI 前缀（20/20 冒烟通过）。</div></div></div>
+      <div class="row"><div class="c1">附带</div><div class="c2"><span class="dot lo"></span></div><div class="c3"><div class="task">数据管道验证（preprocess 重跑） <span class="st yes">✓</span></div><div class="detail">按用户批准重跑：发现并修复 DocumentLoader 把 .preprocess_manifest.json 误当知识文档（12 篇→11 篇，空 doc_id 引发 Empty ID）；向量库加空 id 双保险。重跑全流程通过。</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="idx">05</span><h2>需要你拍板的事项</h2><span class="note">以下变更超出"低风险增量"范围，需确认后执行</span></div>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:20%"><col style="width:34%"><col style="width:20%"></colgroup>
+    <thead><tr><th>事项</th><th>类型</th><th>说明</th><th>建议</th></tr></thead>
+    <tbody>
+      <tr><td><b>会话多实例化</b></td><td><span class="st opt">可选</span></td><td>P0-1 的最小修是加锁（单会话仍共享）；要真正多会话隔离需按 session_id 建状态映射，涉及前端会话切换。</td><td>先加锁止血，多会话隔离作为后续迭代。</td></tr>
+      <tr><td><b>真流式输出</b></td><td><span class="st opt">可选</span></td><td>当前 SSE 为"先算完再逐字播"，接入 LLM stream 才能真正打字机，涉及 agent 链路重构。</td><td>不阻塞稳定性目标，列为独立优化项。</td></tr>
+      <tr><td><b>preprocess 重跑</b></td><td><span class="st yes">已执行</span></td><td>按用户批准于阶段三执行，以验证数据管道：按增量跳过存量解析，构建元数据/向量/BM25；期间发现 DocumentLoader 误加载 manifest 的 bug 并修复。</td><td>已完成，重跑全流程通过。</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <div class="sec-h"><span class="idx">06</span><h2>已修复项（防回退清单）</h2><span class="note">近期连环故障的已修复根因，回归测试时重点覆盖</span></div>
+  <div class="fxgrid">
+    <div class="fxitem"><div class="ft">模型切换不生效</div><div class="fd">已加 <code>reset_llm_cache()</code>（agent/tools）并在 <code>/model/update</code> 保存后刷新 + <code>_inject_env</code> 注入 key/base_url；实测对话链路恢复。回归：改模型后立即对话应命中新模型。</div></div>
+    <div class="fxitem"><div class="ft">检索 FileNotFoundError</div><div class="fd">id_map.json 重建（11 条全指向真实位置）；knowledge_loader 失败返回 None + 过滤 + 缺失时自动重建。回归：任一路径访问均可检索全部 11 篇。</div></div>
+    <div class="fxitem"><div class="ft">run.bat 启动失败</div><div class="fd">GBK 编码修复中文乱码；解释器优先级探测；KMP_DUPLICATE_LIB_OK；轮询 150s 等 HTTP 200 再开网页。回归：双击 run.bat 应自启服务并开网页。</div></div>
+  </div>
+</section>
+
+<footer>
+  <div>审查方法：全量通读 api/ · core/ · config/ 关键模块（agent、tools、llm、RAG、retriever、BM25、reranker、meta_db、vector_db、embedding、loader、cache、preprocessor、summarizer、trace），核对 requirements/pyproject，实测文件系统（C/D 挂载关系确认、id_map、models、store、bm25 索引、残留文件）。</div>
+  <div>局限：未覆盖 web/app.js 全量交互分支；未做压测；部分结论基于代码静态分析，行为验证按计划逐项执行。</div>
+  <div>阶段三执行记录（2026-09）：P2-2/4/5/6/7/8 完成；P2-1 受阻于 OneDrive 同步恢复（需手动处置）；preprocess 重跑通过并修复 manifest 误加载 bug。全量改动经 py_compile + 20/20 冒烟 + 数据管道重跑验证。</div>
+  <div>生成于 2026-09-13 · PsychAgent 架构稳定性诊断 · 阶段三更新 2026-09</div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+(function(){
+  var el = document.getElementById('arch');
+  if(!el || typeof echarts === 'undefined'){ el.innerHTML = '<p class="muted" style="padding:20px">架构图需要联网加载 ECharts，离线环境下不显示（不影响其余内容）。</p>'; return; }
+  var chart = echarts.init(el);
+  var nodes = [
+    {id:'fe', name:'前端 web/\n(app.js)', category:0, x:60,  y:60},
+    {id:'api', name:'api/ 层\n(9 个路由)', category:0, x:200, y:60},
+    {id:'agent', name:'core/agent.py\n(agent_service_entry)', category:1, x:300, y:140},
+    {id:'rag', name:'RAG_agent\n(get_global_rag_agent)', category:1, x:300, y:230},
+    {id:'ret', name:'retriever\n(query → 检索)', category:1, x:430, y:230},
+    {id:'cache', name:'KNOWLEDGE_CACHE\nMEMORY_CACHE\n(启动快照 ★)', category:2, x:560, y:120, symbolSize:46},
+    {id:'state', name:'SESSION_STATE\n(全局单例 ★)', category:2, x:560, y:40, symbolSize:46},
+    {id:'tracker', name:'GLOBAL_TRACKER\n(全局单例 ★)', category:2, x:560, y:330, symbolSize:46},
+    {id:'bm25', name:'BM25 索引', category:3, x:430, y:320},
+    {id:'vec', name:'向量库\n(vector_db)', category:3, x:430, y:420},
+    {id:'meta', name:'sqlite 元数据\n(4 个 meta_db)', category:3, x:300, y:420},
+    {id:'llm', name:'LLM / Ollama\n(GLOBAL_MODEL ★)', category:4, x:180, y:330, symbolSize:44},
+    {id:'data', name:'data/ 文件\n(knowledge·memory)', category:4, x:300, y:500}
+  ];
+  var links = [
+    {source:'fe', target:'api'},
+    {source:'api', target:'agent'},
+    {source:'api', target:'state'},
+    {source:'api', target:'cache'},
+    {source:'api', target:'tracker'},
+    {source:'agent', target:'rag'},
+    {source:'rag', target:'ret'},
+    {source:'ret', target:'cache'},
+    {source:'ret', target:'bm25'},
+    {source:'ret', target:'vec'},
+    {source:'rag', target:'meta'},
+    {source:'agent', target:'state'},
+    {source:'agent', target:'tracker'},
+    {source:'agent', target:'llm'},
+    {source:'rag', target:'llm'},
+    {source:'cache', target:'data'},
+    {source:'meta', target:'data'},
+    {source:'llm', target:'api'}
+  ];
+  chart.setOption({
+    tooltip:{formatter:function(p){return p.dataType==='edge' ? '' : '<b>'+p.name.replace('\n',' ')+'</b>' + (p.value?('<br/><span style="color:#8b949e">'+p.value+'</span>'):'');}},
+    legend:{data:['前端/接口','对话链路','全局单例','持久层','外部/数据'],bottom:0,textStyle:{color:'#8b949e',fontSize:11},itemWidth:12,itemHeight:8},
+    series:[{
+      type:'graph', layout:'none', roam:false, draggable:false, data:nodes, links:links,
+      categories:[{name:'前端/接口'},{name:'对话链路'},{name:'全局单例'},{name:'持久层'},{name:'外部/数据'}],
+      label:{show:true,position:'bottom',fontSize:11,lineHeight:14,color:'#e6edf3',fontFamily:'Noto Sans SC'},
+      itemStyle:{color:'#21262d',borderColor:'#58a6ff',borderWidth:1.5},
+      lineStyle:{color:'#30363d',width:1.2,curveness:0.12},
+      emphasis:{focus:'adjacency',label:{fontWeight:700},lineStyle:{width:2}},
+      edgeSymbol:['none','arrow'], edgeSymbolSize:6,
+      symbolSize:40,
+      data: nodes.map(function(n){ if(n.category===2) return Object.assign({},n,{itemStyle:{color:'#2d1b1e',borderColor:'#f85149',borderWidth:2}}); return n; })
+    }]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+</script>
+
+</div>
+</body>
+</html>

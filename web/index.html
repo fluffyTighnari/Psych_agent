@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>心迹 · Psych Journal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900&family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ============ 左侧导航 ============ -->
+    <aside class="rail">
+      <div class="brand">
+        <div class="brand-seal">心</div>
+        <div class="brand-text">
+          <h1>心迹</h1>
+          <span>Psych Journal</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="chat">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          <span>主对话</span>
+          <i>Chat</i>
+        </button>
+        <button class="nav-item" data-view="records">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="8" height="4" rx="1"/><rect x="13" y="10" width="8" height="4" rx="1"/><rect x="3" y="16" width="8" height="4" rx="1"/><rect x="13" y="16" width="8" height="4" rx="1"/></svg>
+          <span>过往记录</span>
+          <i>Archive</i>
+        </button>
+        <button class="nav-item" data-view="writing">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <span>码字编辑</span>
+          <i>Compose</i>
+        </button>
+        <button class="nav-item" data-view="trace">
+          <svg viewBox="0 0 24 24"><path d="M4 12h4l2-6 4 12 2-6h4"/></svg>
+          <span>流程日志</span>
+          <i>Trace</i>
+        </button>
+        <button class="nav-item" data-view="retrieval">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16.6 16.6"/><path d="M8 11h6"/><path d="M11 8v6"/></svg>
+          <span>检索调试</span>
+          <i>Retrieval</i>
+        </button>
+      </nav>
+
+      <div class="rail-footer">
+        <div class="conn">
+          <span class="conn-dot" id="conn-dot"></span>
+          <span id="conn-text">连接中…</span>
+        </div>
+        <div class="session-id" id="rail-session">session · —</div>
+      </div>
+    </aside>
+
+    <!-- ============ 主内容 ============ -->
+    <main class="main">
+      <!-- ===== 视图 1：主对话 + 关联图谱 ===== -->
+      <section class="view active" id="view-chat">
+        <header class="view-head">
+          <div class="head-title">
+            <h2>主对话</h2>
+            <p class="head-sub">与你的心理咨询师进行一场安静的对话</p>
+          </div>
+          <div class="head-actions">
+            <div class="model-chips" id="model-chips"></div>
+            <button class="btn ghost" id="btn-model-settings">模型设置</button>
+            <button class="btn ghost" id="btn-session-clear">清空会话</button>
+            <button class="btn danger" id="btn-session-reset">重置会话</button>
+          </div>
+        </header>
+
+        <div class="chat-layout">
+          <div class="chat-pane">
+            <div class="chat-scroll" id="chat-scroll">
+              <div class="chat-list" id="chat-list">
+                <div class="chat-empty" id="chat-empty">
+                  <div class="empty-seal">迹</div>
+                  <p class="empty-title">此刻，你在想些什么？</p>
+                  <p class="empty-sub">写下你的情绪、困惑或迷茫，我会认真倾听。</p>
+                </div>
+              </div>
+            </div>
+            <div class="chat-composer">
+              <div class="composer-top">
+                <div class="composer-modes">
+                  <label class="mode-pill"><input type="radio" name="sendmode" value="once" checked /><span>一次性</span></label>
+                  <label class="mode-pill"><input type="radio" name="sendmode" value="stream" /><span>流式 · SSE</span></label>
+                </div>
+                <div class="composer-hint">Enter 发送 · Shift + Enter 换行</div>
+              </div>
+              <div class="mode-picker" id="mode-picker">
+                <button type="button" class="mode-card" data-mode="direct">
+                  <span class="mode-card-title">直接咨询</span>
+                  <span class="mode-card-desc">给我建议 / 总结</span>
+                </button>
+                <button type="button" class="mode-card" data-mode="guided">
+                  <span class="mode-card-title">引导咨询</span>
+                  <span class="mode-card-desc">逐步帮我推理，最后给我建议</span>
+                </button>
+              </div>
+              <div class="problem-anchor" id="problem-anchor" style="display:none">
+                <span class="anchor-label">正在探索的问题</span>
+                <span class="anchor-text" id="problem-anchor-text"></span>
+              </div>
+              <textarea id="chat-input" rows="3" placeholder="说点什么…"></textarea>
+              <div class="situation-wrap">
+                <button class="situation-toggle" id="btn-situation-toggle" type="button">＋ 补充具体情境（可选）</button>
+                <textarea id="chat-situation" rows="2" placeholder="补充真实的问题情境，让建议更可执行…（可选）" style="display:none"></textarea>
+              </div>
+              <div class="composer-bottom">
+                <button class="btn primary" id="btn-send">发送</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="graph-pane">
+            <div class="graph-pane-head">
+              <div class="graph-title">会话关联图谱</div>
+              <div class="graph-actions">
+                <button class="btn primary sm" id="btn-graph-summarize">一键总结</button>
+                <button class="btn ghost sm" id="btn-graph-refresh">刷新</button>
+              </div>
+            </div>
+            <div class="graph-legend" id="graph-legend">
+              <span class="legend-item"><i class="lg-dot session"></i>会话</span>
+              <span class="legend-item"><i class="lg-dot memory"></i>记忆</span>
+              <span class="legend-item"><i class="lg-dot document"></i>文档</span>
+              <span class="legend-item"><i class="lg-dot reason"></i>推理</span>
+              <span class="legend-sep"></span>
+              <span class="legend-item"><i class="lg-line line-bind"></i>会话↔记忆</span>
+              <span class="legend-item"><i class="lg-line line-ref"></i>会话→文档</span>
+              <span class="legend-item"><i class="lg-line line-mem"></i>记忆→文档</span>
+              <span class="legend-item"><i class="lg-line line-reason"></i>推理递进</span>
+            </div>
+            <div class="graph-stage" id="graph-stage">
+              <canvas id="graph-canvas"></canvas>
+              <div class="graph-empty" id="graph-empty">暂无图谱数据 · 请先进行一段心理咨询对话</div>
+            </div>
+            <div class="graph-latest" id="graph-latest"><span class="gl-empty">暂无运行进度</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 视图 2：过往记录 ===== -->
+      <section class="view" id="view-records">
+        <header class="view-head">
+          <div class="head-title">
+            <h2>过往记录</h2>
+            <p class="head-sub">检索你的知识文档与历史会话记忆</p>
+          </div>
+        </header>
+
+        <div class="records-tabs" id="records-tabs">
+          <button class="tab active" data-records-tab="knowledge">知识文档检索</button>
+          <button class="tab" data-records-tab="memory">历史记忆检索</button>
+        </div>
+
+        <!-- 知识文档检索 -->
+        <div class="records-panel active" id="panel-knowledge">
+          <div class="submodes" id="k-submodes">
+            <button class="submode active" data-kmode="meta">粗略元过滤</button>
+            <button class="submode" data-kmode="text">精准文本过滤</button>
+            <button class="submode" data-kmode="preprocess">预处理</button>
+          </div>
+
+          <div class="filter-form" id="k-form">
+            <div class="field">
+              <label>文档类型</label>
+              <select id="k-doc-type">
+                <option value="">全部</option>
+                <option value="daily">daily · 日常</option>
+                <option value="weekly">weekly · 周记</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>起始日期</label>
+              <input type="date" id="k-start" />
+            </div>
+            <div class="field">
+              <label>结束日期</label>
+              <input type="date" id="k-end" />
+            </div>
+            <div class="field field-topic">
+              <label>主题（可多选）</label>
+              <div class="topic-checkboxes" id="k-topic-checkboxes"></div>
+            </div>
+            <div class="field">
+              <label>关键词（多个，逗号分隔）</label>
+              <input type="text" id="k-keyword" placeholder="内耗, 完美主义" />
+            </div>
+            <div class="field">
+              <label>情绪（多个，逗号分隔）</label>
+              <input type="text" id="k-emotion" list="emotions-list" placeholder="Anxiety, Sadness" />
+            </div>
+            <div class="field field-target" id="k-target-field">
+              <label>精准文本（text-filter 必填）</label>
+              <input type="text" id="k-target" placeholder="需要精确匹配的原文短句" />
+            </div>
+          </div>
+
+          <div class="preprocess-box" id="k-preprocess-box">
+            <p>扫描 <code>data/notes/</code> 下的所有 Markdown，调用本地大模型提取结构化 JSON、构建向量库与 BM25 索引。</p>
+            <p class="muted">此操作耗时较长，请耐心等待。</p>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn primary" id="btn-k-search">搜索</button>
+            <button class="btn ghost" id="btn-k-clear">清空</button>
+          </div>
+        </div>
+
+        <!-- 历史记忆检索 -->
+        <div class="records-panel" id="panel-memory">
+          <div class="submodes" id="m-submodes">
+            <button class="submode active" data-mmode="filter">精准过滤</button>
+            <button class="submode" data-mmode="vector">向量语义检索</button>
+          </div>
+
+          <div class="filter-form" id="m-filter-form">
+            <div class="field">
+              <label>起始日期</label>
+              <input type="date" id="m-start" />
+            </div>
+            <div class="field">
+              <label>结束日期</label>
+              <input type="date" id="m-end" />
+            </div>
+            <div class="field field-topic">
+              <label>主题（可多选）</label>
+              <div class="topic-checkboxes" id="m-topic-checkboxes"></div>
+            </div>
+            <div class="field">
+              <label>关键词（多个，逗号分隔）</label>
+              <input type="text" id="m-keyword" placeholder="内耗, 依恋" />
+            </div>
+            <div class="field">
+              <label>情绪（多个，逗号分隔）</label>
+              <input type="text" id="m-emotion" list="emotions-list" placeholder="Anxiety, Loneliness" />
+            </div>
+          </div>
+
+          <div class="filter-form" id="m-vector-form">
+            <div class="field field-wide">
+              <label>自然查询</label>
+              <input type="text" id="m-query" placeholder="之前聊过关于焦虑的话题" />
+            </div>
+            <div class="field field-num">
+              <label>top_k</label>
+              <input type="number" id="m-topk" value="3" min="1" max="20" />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn primary" id="btn-m-search">搜索</button>
+            <button class="btn ghost" id="btn-m-clear">清空</button>
+          </div>
+        </div>
+
+        <div class="results-head">
+          <span class="results-title">检索结果</span>
+          <span class="results-count" id="records-count">0 条</span>
+        </div>
+        <div class="results-list" id="records-results">
+          <div class="results-empty" id="records-empty">尚未检索 · 页面加载时默认展示全部文档 / 记忆</div>
+        </div>
+
+        <button class="back-top" id="back-top">↑ 回到开头</button>
+      </section>
+
+      <!-- ===== 视图 3：码字编辑 ===== -->
+      <section class="view" id="view-writing">
+        <header class="view-head">
+          <div class="head-title">
+            <h2>码字编辑</h2>
+            <p class="head-sub">记录今日思绪，或做一次周复盘</p>
+          </div>
+          <div class="head-actions">
+            <div class="write-modes" id="write-modes">
+              <label class="mode-pill big"><input type="radio" name="writemode" value="daily" checked /><span>Daily · 日常</span></label>
+              <label class="mode-pill big"><input type="radio" name="writemode" value="weekly" /><span>Weekly · 周记</span></label>
+            </div>
+          </div>
+        </header>
+
+        <!-- Daily -->
+        <div class="write-panel" id="write-daily">
+          <div class="field field-date">
+            <label>日期（文件名自动生成为 年.月.日.md）</label>
+            <input type="date" id="d-date" />
+          </div>
+          <div class="field">
+            <label>正文</label>
+            <textarea id="d-content" class="daily-editor" placeholder="今天发生了什么，此刻的感受如何…"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="btn-d-save">保存 Daily</button>
+            <button class="btn ghost" id="btn-d-clear">清空</button>
+          </div>
+        </div>
+
+        <!-- Weekly -->
+        <div class="write-panel" id="write-weekly" style="display:none">
+          <div class="weekly-grid">
+            <div class="field">
+              <label>文件名（用核心问题命名）</label>
+              <input type="text" id="w-filename" placeholder="例如：如何停止过度在意他人评价" />
+            </div>
+            <div class="field">
+              <label>标题</label>
+              <input type="text" id="w-title" placeholder="本周复盘主题" />
+            </div>
+          </div>
+          <div class="weekly-sections">
+            <div class="weekly-sec">
+              <label class="sec-label"><span class="sec-num">1</span> problem · 问题</label>
+              <textarea id="w-problem" rows="5" placeholder="本周困扰你的问题…"></textarea>
+            </div>
+            <div class="weekly-sec">
+              <label class="sec-label"><span class="sec-num">2</span> analysis · 分析</label>
+              <textarea id="w-analysis" rows="7" placeholder="对问题的深入分析…"></textarea>
+            </div>
+            <div class="weekly-sec">
+              <label class="sec-label"><span class="sec-num">3</span> solution · 方案</label>
+              <textarea id="w-solution" rows="5" placeholder="你验证有效的解决思路…"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="btn-w-save">保存 Weekly</button>
+            <button class="btn ghost" id="btn-w-clear">清空</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 视图 4：流程日志 ===== -->
+      <section class="view" id="view-trace">
+        <header class="view-head">
+          <div class="head-title">
+            <h2>实时流程日志</h2>
+            <p class="head-sub">追踪每一次处理的阶段与结构化细节</p>
+          </div>
+          <div class="head-actions">
+            <div class="sse-status" id="trace-status"><span class="conn-dot"></span>SSE 监听中</div>
+            <button class="btn ghost" id="btn-trace-clear">清空视图</button>
+            <button class="btn ghost" id="btn-trace-refresh">刷新</button>
+          </div>
+        </header>
+
+        <div class="trace-list" id="trace-list">
+          <div class="trace-empty" id="trace-empty">暂无日志 · 发起一次对话或检索后会自动记录</div>
+        </div>
+      </section>
+
+      <!-- ===== 视图 5：检索调试 ===== -->
+      <section class="view" id="view-retrieval">
+        <header class="view-head">
+          <div class="head-title">
+            <h2>检索优化调试</h2>
+            <p class="head-sub">自由组合检索链路，对比每一阶段的召回效果</p>
+          </div>
+          <div class="head-actions">
+            <div class="rd-stats" id="rd-stats">
+              <span class="rd-stat"><b id="rd-latency">—</b><i>ms 耗时</i></span>
+              <span class="rd-stat"><b id="rd-final-count">0</b><i>最终条数</i></span>
+            </div>
+            <button class="btn primary" id="rd-run-top">运行检索</button>
+          </div>
+        </header>
+
+        <div class="rd-scroll">
+          <!-- a. 检索开关 + 参数 + prompt -->
+          <div class="rd-panel rd-control">
+            <div class="rd-panel-head">
+              <span class="rd-panel-title">检索链路</span>
+              <span class="rd-panel-hint" id="rd-pipeline-hint">尚未运行</span>
+            </div>
+
+            <div class="rd-switches" id="rd-switches"></div>
+
+            <div class="rd-params">
+              <div class="field">
+                <label for="rd-raw-topk">raw_top_k</label>
+                <input type="number" id="rd-raw-topk" value="6" min="1" max="50" />
+              </div>
+              <div class="field">
+                <label for="rd-final-topk">final_top_k</label>
+                <input type="number" id="rd-final-topk" value="3" min="1" max="50" />
+              </div>
+              <div class="field">
+                <label for="rd-rrf-k">rrf_k</label>
+                <input type="number" id="rd-rrf-k" value="60" min="1" max="1000" />
+              </div>
+              <div class="field">
+                <label for="rd-score-threshold">score_threshold</label>
+                <input type="number" id="rd-score-threshold" step="0.01" min="0" max="1" placeholder="空 = 默认 0.08" />
+              </div>
+            </div>
+
+            <div class="rd-prompt">
+              <label for="rd-prompt">prompt</label>
+              <textarea id="rd-prompt" rows="3" placeholder="最近总是内耗，怎么和自己和解"></textarea>
+            </div>
+
+            <div class="rd-actions">
+              <button class="btn primary" id="rd-run">运行检索</button>
+              <span class="rd-run-hint" id="rd-run-hint">至少选择一种检索方式，Enter 换行 · Ctrl/⌘ + Enter 运行</span>
+            </div>
+          </div>
+
+          <div class="rd-grid">
+            <div class="rd-col">
+              <!-- b. 全部文档 -->
+              <div class="rd-panel" id="rd-docs-panel">
+                <div class="rd-panel-head">
+                  <span class="rd-panel-title">全部文档</span>
+                  <span class="rd-panel-hint" id="rd-doc-stats">总数 0 · daily 0 · weekly 0</span>
+                </div>
+                <div class="rd-doc-filters">
+                  <input type="text" id="rd-doc-keyword" placeholder="按标题 / 摘要 / 正文 / 关键词过滤…" />
+                  <select id="rd-doc-type">
+                    <option value="">全部类型</option>
+                    <option value="daily">daily · 日常</option>
+                    <option value="weekly">weekly · 周记</option>
+                  </select>
+                  <button class="btn ghost sm" id="rd-doc-refresh">刷新</button>
+                </div>
+                <div class="rd-doc-list" id="rd-doc-list">
+                  <div class="rd-empty">加载中…</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rd-col">
+              <!-- c1. 最终检索结果（最上方，最醒目） -->
+              <div class="rd-panel rd-final-panel">
+                <div class="rd-panel-head">
+                  <span class="rd-panel-title">最终检索结果</span>
+                  <span class="rd-panel-hint" id="rd-final-hint">尚未运行</span>
+                </div>
+                <div class="rd-final-list" id="rd-final-list">
+                  <div class="rd-empty">运行一次检索后，这里展示所选链路最终返回的 Top-K</div>
+                </div>
+              </div>
+
+              <!-- c2. 检索结果 · 逐阶段对比 -->
+              <div class="rd-panel">
+                <div class="rd-panel-head">
+                  <span class="rd-panel-title">检索结果 · 逐阶段</span>
+                  <span class="rd-panel-hint" id="rd-result-hint">尚未运行</span>
+                </div>
+                <div class="rd-stages" id="rd-stages">
+                  <div class="rd-empty">运行一次检索后，这里会按阶段展示召回候选</div>
+                </div>
+              </div>
+
+              <!-- d. 检索日志 -->
+              <div class="rd-panel">
+                <div class="rd-panel-head">
+                  <span class="rd-panel-title">检索日志</span>
+                  <span class="rd-panel-hint" id="rd-log-hint">—</span>
+                </div>
+                <div class="rd-summary" id="rd-log-summary">
+                  <div class="rd-empty">尚无运行摘要</div>
+                </div>
+                <div class="rd-logs" id="rd-logs">
+                  <div class="rd-empty">尚无日志</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ 模型设置抽屉 ============ -->
+  <div class="drawer-mask" id="model-drawer-mask"></div>
+  <aside class="drawer" id="model-drawer">
+    <div class="drawer-head">
+      <h3>模型设置</h3>
+      <button class="icon-btn" id="model-close">✕</button>
+    </div>
+    <p class="drawer-sub">分别指定 small / large / chat 三个槽位的模型。不改动的槽位保持原模型。</p>
+    <div class="model-slots" id="model-slots"></div>
+
+    <div class="ollama-start-box">
+      <div class="ollama-start-head">
+        <h4>启动 Ollama 模型</h4>
+        <button class="btn ghost sm" id="btn-ollama-ps-refresh">刷新</button>
+      </div>
+      <div class="ollama-start-row">
+        <select id="ollama-start-model"></select>
+        <select id="ollama-start-keepalive">
+          <option value="5m">常驻 5 分钟</option>
+          <option value="30m">常驻 30 分钟</option>
+          <option value="1h">常驻 1 小时</option>
+          <option value="-1" selected>一直常驻</option>
+        </select>
+        <button class="btn primary sm" id="btn-ollama-start">启动</button>
+      </div>
+      <div class="ollama-running" id="ollama-running"><span class="muted">暂无运行中的模型</span></div>
+    </div>
+
+    <div class="drawer-foot">
+      <button class="btn primary" id="btn-model-save">保存并生效</button>
+    </div>
+  </aside>
+
+  <!-- ============ 节点详情弹窗 ============ -->
+  <div class="modal-mask" id="node-modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span class="modal-type" id="node-modal-type">—</span>
+        <button class="icon-btn" id="node-modal-close">✕</button>
+      </div>
+      <h3 class="modal-title" id="node-modal-title">节点详情</h3>
+      <div class="modal-body" id="node-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ 图谱悬浮提示 ============ -->
+  <div class="graph-tooltip" id="graph-tooltip"></div>
+
+  <!-- ============ Toast ============ -->
+  <div class="toasts" id="toasts"></div>
+
+  <!-- datalists -->
+  <datalist id="emotions-list">
+    <option value="Neutral"></option><option value="Anxiety"></option><option value="Sadness"></option>
+    <option value="Anger"></option><option value="Fear"></option><option value="Joy"></option>
+    <option value="Hope"></option><option value="Disappointment"></option><option value="Confusion"></option>
+    <option value="Calm"></option><option value="Stress"></option><option value="Loneliness"></option>
+    <option value="Guilt"></option><option value="Shame"></option><option value="Frustration"></option>
+    <option value="Gratitude"></option><option value="Contentment"></option><option value="Excitement"></option>
+    <option value="Worry"></option><option value="Melancholy"></option><option value="Relief"></option>
+    <option value="Regret"></option><option value="Overwhelmed"></option>
+  </datalist>
+
+  <script src="app.js"></script>
+</body>
+</html>

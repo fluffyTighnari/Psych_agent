@@ -1,0 +1,115 @@
+# ========== Python 虚拟环境 & 编译缓存 ==========
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist_python/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ========== 日志、运行缓存 ==========
+logs/
+*.log
+*.trace
+tmp/
+temp/
+.cache
+.pytest_cache/
+
+# ========== 前端资源（仅保留打包dist源码，排除node依赖） ==========
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log
+# /frontend/dist 按需放开注释：若dist本地打包、服务器单独上传则忽略
+# frontend/dist/
+
+# ========== 项目本地数据（知识库、记忆、数据库大文件，不上git） ==========
+data/
+store/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.pkl
+# md文章、记忆文件体积大，统一服务器维护，不提交仓库
+Daily_thoughts/
+Weekly_thoughts/
+vector_store/
+bm25_index/
+embedding_cache/
+
+# ========== 本地模型（HuggingFace 拉取，体积 GB 级，不入库） ==========
+models/
+*.gguf
+*.bin
+model_cache/
+
+# ========== IDE、系统隐藏文件 ==========
+# Windows
+Thumbs.db
+Desktop.ini
+# Mac
+.DS_Store
+._*
+# Visual Studio
+.vs/
+# VSCode
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.out
+
+# ========== 本地配置、密钥（关键！防止泄露api_key） ==========
+# 模板保留 config.template.json，真实配置忽略
+config/model_store.json
+config/local_config.json
+config/id_map.json
+*.secret
+.env
+.env.local
+.env.prod
+api_key.txt
+secret.key
+
+# ========== AI 工具本地设置（不入库） ==========
+.claude/
+.cursor/
+
+# ========== 临时导出、测试文件 ==========
+*.tmp
+*.bak
+backup/
+test_output/
+dump/
+# ========== Syncthing / 自检产物 / 学习笔记 ==========
+.stfolder/
+.stignore
+docs/_shots/
+RAG/

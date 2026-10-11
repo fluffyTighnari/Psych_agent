@@ -1,0 +1,26 @@
+# ===== PsychAgent 运行依赖（版本锁定于本机已验证组合，2026-09-25）=====
+# LLM 层
+langchain-core==1.4.9
+langchain-community==0.4.2
+langchain-classic==1.0.8
+langchain-deepseek==1.1.0
+langchain-openai==1.3.2
+langchain-text-splitters==1.1.2
+openai==2.43.0
+ollama==0.6.2
+
+# 检索与向量
+chromadb==1.5.9
+sentence-transformers==6.0.1
+rank-bm25==0.2.2
+jieba3k==0.35.1
+
+# Web 服务
+fastapi==0.141.1
+uvicorn==0.51.0
+sse-starlette==3.4.11
+requests==2.32.5
+
+# 工具
+python-dotenv==1.1.0
+pydantic==2.12.4
