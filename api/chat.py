@@ -11,11 +11,26 @@ from core.helper.trace_tracker import GLOBAL_TRACKER
 router = APIRouter(prefix="/chat", tags=["主对话"])
 
 
+def _dump_attachments(items) -> list[dict]:
+    """把 pydantic 附件模型转成纯 dict，供编排层使用。"""
+    if not items:
+        return []
+    out = []
+    for it in items:
+        d = it.model_dump() if hasattr(it, "model_dump") else dict(it)
+        if str(d.get("content") or "").strip():
+            out.append(d)
+    return out
+
+
 @router.post("")
 @catch_exception
 def chat_normal(req: ChatRequest):
     """普通一次性对话接口，完整返回结果"""
-    result = agent_service_entry(req.user_input, req.situation, req.role, req.mode)
+    result = agent_service_entry(
+        req.user_input, req.situation, req.role, req.mode,
+        attachments=_dump_attachments(req.attachments),
+    )
     return resp(CODE_OK, "对话处理完成", data=result)
 
 
@@ -29,7 +44,11 @@ def chat_stream(req: ChatRequest):
         try:
             # 将同步阻塞的 agent_service_entry 放到线程池执行，避免阻塞事件循环
             loop = asyncio.get_running_loop()
-            full_result = await loop.run_in_executor(None, agent_service_entry, req.user_input, req.situation, req.role, req.mode)
+            attachments = _dump_attachments(req.attachments)
+            full_result = await loop.run_in_executor(
+                None, agent_service_entry,
+                req.user_input, req.situation, req.role, req.mode, attachments,
+            )
         except Exception as e:
             # 兜底：LLM/检索异常时推送明确 error 事件，前端可展示而非断流
             GLOBAL_TRACKER.add_trace(

@@ -1,0 +1,81 @@
+{
+  "_note": "首选方案：一个 OpenRouter key，OpenAI 兼容端点，覆盖 OpenAI/Anthropic/Google/DeepSeek/Qwen/GLM/Kimi。复制为 guide_eval/models.json 后，在 .env 设置 OPENROUTER_API_KEY。候选 5 家 + judge/simulator 与候选不同源，避免自偏好。",
+  "models": [
+    {
+      "name": "deepseek-v4.1-flash",
+      "provider": "openai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 900,
+      "roles": ["candidate"]
+    },
+    {
+      "name": "qwen3.8-max",
+      "provider": "openai",
+      "model": "qwen/qwen3.8-max",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 900,
+      "roles": ["candidate"]
+    },
+    {
+      "name": "glm-5.3",
+      "provider": "openai",
+      "model": "z-ai/glm-5.3",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 900,
+      "roles": ["candidate"]
+    },
+    {
+      "name": "kimi-k3",
+      "provider": "openai",
+      "model": "moonshotai/kimi-k3",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 900,
+      "roles": ["candidate"]
+    },
+    {
+      "name": "gemini-3.8-flash",
+      "provider": "openai",
+      "model": "google/gemini-3.8-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 900,
+      "roles": ["candidate"]
+    },
+    {
+      "name": "judge-claude-sonnet-5.5",
+      "provider": "openai",
+      "model": "anthropic/claude-sonnet-5.5",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "temperature": 0.0,
+      "max_tokens": 2500,
+      "json_mode": true,
+      "roles": ["judge"]
+    },
+    {
+      "name": "sim-gpt-6-luna",
+      "provider": "openai",
+      "model": "openai/gpt-6-luna",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "temperature": 0.8,
+      "max_tokens": 400,
+      "roles": ["simulator"]
+    }
+  ],
+  "defaults": {
+    "candidate": ["deepseek-v4.1-flash", "qwen3.8-max", "glm-5.3", "kimi-k3", "gemini-3.8-flash"],
+    "judge": ["judge-claude-sonnet-5.5"],
+    "simulator": ["sim-gpt-6-luna"]
+  }
+}

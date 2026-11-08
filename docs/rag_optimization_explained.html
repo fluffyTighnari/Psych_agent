@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314b8a6'/%3E%3Cpath d='M9 12h14M9 16h10M9 20h12' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>检索优化看懂版 · PsychAgent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #f6f8fa; color: #1f2933; line-height: 1.7; padding: 24px 16px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 26px; color: #0f172a; margin-bottom: 6px; }
+  .sub { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+  h2 { font-size: 19px; color: #0f172a; margin: 32px 0 12px; padding-left: 10px; border-left: 4px solid #14b8a6; }
+  h3 { font-size: 16px; color: #0f172a; margin: 16px 0 8px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .kw { display: inline-block; background: #ecfdf5; color: #0f766e; border: 1px solid #a7f3d0; border-radius: 6px; padding: 0 8px; font-size: 13px; font-weight: 600; margin-right: 6px; }
+  .bad { display: inline-block; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 6px; padding: 0 8px; font-size: 13px; font-weight: 600; margin-right: 6px; }
+  .good { display: inline-block; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0 8px; font-size: 13px; font-weight: 600; margin-right: 6px; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 14px 0; }
+  .fstep { flex: 1 1 120px; min-width: 120px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px 12px; text-align: center; }
+  .fstep .no { font-size: 12px; color: #94a3b8; font-weight: 700; }
+  .fstep .name { font-size: 14.5px; font-weight: 700; color: #0f172a; margin: 2px 0; }
+  .fstep .desc { font-size: 12.5px; color: #64748b; }
+  .fstep.hot { border-color: #14b8a6; background: #ecfdf5; }
+  .fstep.warn { border-color: #f59e0b; background: #fffbeb; }
+  .arrow { align-self: center; color: #94a3b8; font-size: 18px; font-weight: 700; padding: 0 2px; }
+  .pair { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .pcard { flex: 1 1 200px; border-radius: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; }
+  .pcard.dense { background: #eff6ff; border-color: #bfdbfe; }
+  .pcard.bm25 { background: #fef3c7; border-color: #fde68a; }
+  .pcard .t { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+  th, td { border: 1px solid #e2e8f0; padding: 9px 10px; text-align: left; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; }
+  th { background: #f1f5f9; font-weight: 700; color: #334155; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .num { font-variant-numeric: tabular-nums; font-weight: 700; color: #0f766e; }
+  .num.up { color: #047857; }
+  .num.down { color: #b91c1c; }
+  .note { font-size: 13px; color: #64748b; background: #f8fafc; border-left: 3px solid #cbd5e1; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; }
+  ul, ol { padding-left: 22px; margin: 8px 0; }
+  li { margin: 5px 0; }
+  .legend { font-size: 13px; color: #64748b; margin: 8px 0; }
+  @media (max-width: 720px) {
+    h1 { font-size: 22px; }
+    .flow { flex-direction: column; }
+    .arrow { transform: rotate(90deg); align-self: center; }
+    body { padding: 16px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>你的心理助手是怎么"翻笔记"的 —— 检索优化看懂版</h1>
+<div class="sub">这是 <code>docs/rag_optimization_report.md</code> 的通俗翻译版。目标是让不熟悉"向量检索、BM25、重排"这些词的人也能看懂：这次到底改了什么、为什么改、有没有用。</div>
+
+<h2>0. 先搞懂背景：助手回答你之前，要先"找笔记"</h2>
+<div class="card">
+  <p>你写的 31 篇日记/周记存在知识库里。你向助手提问时，它不是直接回答，而是先做一件事：<b>从 31 篇笔记里挑出最相关的 2~3 篇</b>，再结合笔记内容来回答你。</p>
+  <p>这一步挑得准不准，直接决定回答好不好。这次优化的，就是"挑笔记"这件事。</p>
+</div>
+
+<h2>1. 挑笔记的全过程（一条流水线，6 步）</h2>
+<div class="card">
+  <div class="flow">
+    <div class="fstep"><div class="no">第 1 步</div><div class="name">理解你的问题</div><div class="desc">大模型把问题改写得更适合检索，并抽出关键词</div></div>
+    <div class="arrow">→</div>
+    <div class="fstep hot"><div class="no">第 2 步</div><div class="name">两路同时找</div><div class="desc">一路"按意思找"，一路"按字找"，各自找出 15 篇候选</div></div>
+    <div class="arrow">→</div>
+    <div class="fstep"><div class="no">第 3 步</div><div class="name">合并排名</div><div class="desc">把两路的名单合起来，两边都排得靠前的优先</div></div>
+    <div class="arrow">→</div>
+    <div class="fstep warn"><div class="no">第 4 步</div><div class="name">精读重排</div><div class="desc">让一个"精读模型"把前 10 篇仔细读一遍，微调顺序</div></div>
+    <div class="arrow">→</div>
+    <div class="fstep"><div class="no">第 5 步</div><div class="name">取前 3 篇</div><div class="desc">留下最相关的 3 篇</div></div>
+    <div class="arrow">→</div>
+    <div class="fstep"><div class="no">第 6 步</div><div class="name">结合笔记回答</div><div class="desc">大模型参考这 3 篇，组织答案</div></div>
+  </div>
+  <div class="pair">
+    <div class="pcard dense"><div class="t">按意思找（Dense）</div>把文字变成一串数字（向量），"意思接近"的数字就接近。你说"很慌"，笔记里写"很焦虑"，字不一样，但意思接近，能找着。适合找<b>换了说法</b>的内容。</div>
+    <div class="pcard bm25"><div class="t">按字找（BM25）</div>像搜索引擎：数一数你的话和笔记里有多少<b>相同的词</b>。你说"拖延"，笔记里正好有"拖延"，就能找到。适合找<b>用词一致</b>的内容。</div>
+  </div>
+  <p class="legend">两路各有长短，所以并行都用：按意思的抓"说得不一样但意思一样"，按字的抓"字面完全对得上"。</p>
+</div>
+
+<h2>2. 旧版有 4 个毛病（这就是为什么检索不准）</h2>
+<div class="card">
+  <ol>
+    <li><b>只给"按字找"喂了标签，没喂正文</b>。旧版索引里只有大模型抽的几个标签词（平均 27 个词），你笔记正文里的"刷短视频停不下来""沉没成本""奖学金"这些<b>具体的话根本不在索引里</b>——等于查资料只查目录卡片，正文一个字没查。这是最大的毛病。</li>
+    <li><b>两路合并时，排名几乎不起作用</b>。旧版合并公式里那个参数 k=60 太大，排第 1 的和排第 6 的得分只差 8%，合并结果几乎等于"两摞名单胡乱拼一起"。</li>
+    <li><b>精读模型"独裁"+ 一刀切分数线</b>。旧版最后完全由精读模型排序，还设了固定分数线 0.08。结果：真正有用的笔记经常被分数线砍掉（平均一次只返回 2.16 篇），而无关笔记反而排到了相关笔记前面（31 条里有 2 条犯这个错）。</li>
+    <li><b>扩展词喧宾夺主</b>。检索时，大模型扩展的关键词和你的原话<b>权重一样</b>，一篇只是"沾边"的笔记可能因为撞上一堆扩展词，被错误顶到前面。</li>
+  </ol>
+  <div class="note">一句话总结：<b>不是你的问题问得不好，而是"找笔记"的底子有问题——索引里没有原文、合并规则失效、排序权交给了一个不可靠的模型。</b></div>
+</div>
+
+<h2>3. 这次改了 7 处（每处都配一句"人话"）</h2>
+<div class="card">
+<table>
+<tr><th style="width:20%">改动</th><th style="width:50%">人话解释</th><th style="width:30%">解决哪个毛病</th></tr>
+<tr>
+  <td><span class="good">富索引</span>把整篇笔记都放进索引</td>
+  <td>索引从"只有标签"变成"标题+摘要+周记三段+正文全文"。你原文里写的具体词（刷短视频、实习、奖学金、沉没成本…）现在全部能被检索到。词频和长度也按真实文本计算。</td>
+  <td>毛病 ①。单项收益最大：仅此一项，按字检索的命中率从 <span class="num up">90.3% → 100%</span></td>
+</tr>
+<tr>
+  <td><span class="good">调"长文惩罚"</span>b 从 0.75 调到 0.4</td>
+  <td>BM25 算法天生"歧视"长文档。你的周记 3000 字、日记 1200 字，旧参数下长周记系统性吃亏。把惩罚调轻，长周记不再被冤枉。</td>
+  <td>毛病 ① 的补充。实测 b=0.4 比默认 0.75 更好</td>
+</tr>
+<tr>
+  <td><span class="good">查询加权</span>你的原话权重 2，扩展词 1</td>
+  <td>检索时以你原话的词为主（权重 2），大模型扩展的词只算一半（1），让扩展词不再把"你到底想问什么"冲淡。</td>
+  <td>毛病 ④。硬负例（易混淆笔记）误入前 3 的次数 6 → 3</td>
+</tr>
+<tr>
+  <td><span class="good">双向量合成</span>原话和改写句分开编码再合并</td>
+  <td>旧版把"你的原话"和"改写句"直接拼成一串文字（没法调比例）；新版分别转成向量后按 <b>1 : 0.5</b> 加权平均再归一化。主次分明、可调节。</td>
+  <td>毛病 ② 相关。dense 单路 MRR 提升</td>
+</tr>
+<tr>
+  <td><span class="good">加官方"检索前缀"</span></td>
+  <td>向量模型（bge）官方说明：检索场景要在句子前加一句固定提示，效果更准。实测确实如此。</td>
+  <td>毛病 ② 相关。MRR 0.844 → 0.887</td>
+</tr>
+<tr>
+  <td><span class="good">融合旋钮</span>k 从 60 调到 3，并加"候选池"</td>
+  <td>合并排名时让"排得靠前"真正有优势（k=3），而不是 60 那样形同虚设；重排前先按融合排名截到前 10 篇，融合的排序才真正参与最终决策。</td>
+  <td>毛病 ②。主目标排第 1 的比例 97.9% → 100%</td>
+</tr>
+<tr>
+  <td><span class="good">重排模式 blend</span>融合分 + 0.3 × 精读分</td>
+  <td>精读模型不再"独裁"：大方向听合并排名的（谁该在前），精读模型只在同级别里微调（权重 0.3）。同时删掉一刀切的 0.08 分数线。</td>
+  <td>毛病 ③。"无关笔记排在相关笔记前面"从 2 条 → <span class="num up">0 条</span>；每次稳定返回 3 篇</td>
+</tr>
+</table>
+<div class="note">另外试过的：<b>HyDE</b>（让大模型先假装写两篇笔记再去检索）——对你这种"问题本来就写得很长很具体"的用法反而稀释意图，实测无增益，保留为可选开关但默认关闭。<b>提示词改版</b>（新增 distinctive_terms 等字段）对头部指标没有可测提升，但让调试面板能看到模型"想了什么"，并提速（单次 7.4s → 2.4s）。</div>
+</div>
+
+<h2>4. 前后效果对比（31 条测试问题 × 31 篇笔记）</h2>
+<div class="card">
+<table>
+<tr><th style="width:22%">指标（看前 3 篇）</th><th style="width:38%">含义（人话）</th><th style="width:18%">旧版</th><th style="width:22%">优化后</th></tr>
+<tr><td>宽松命中率</td><td>找回来的 3 篇里，至少有一篇是真正相关的</td><td><span class="num">96.8%</span>（30/31）</td><td><span class="num up">100%</span>（31/31）</td></tr>
+<tr><td>严格命中率</td><td>最该出现的那篇笔记出现在前 3 里</td><td><span class="num">96.8%</span>（30/31）</td><td><span class="num up">100%</span>（31/31）</td></tr>
+<tr><td>主目标排第 1（MRR）</td><td>最相关的那篇排在第 1 位</td><td><span class="num">95.2%</span></td><td><span class="num up">100%</span>（31 篇全排第 1）</td></tr>
+<tr><td>覆盖率</td><td>该找的 2~3 篇里找全了多少</td><td><span class="num">69.4%</span></td><td><span class="num up">73.7%</span></td></tr>
+<tr><td>无关笔记压过相关</td><td>无关的排在相关的前面（最伤体验的错误）</td><td><span class="num down">2 条</span></td><td><span class="num up">0 条</span></td></tr>
+<tr><td>平均返回篇数</td><td>每次给你几条笔记</td><td><span class="num down">2.16 条</span>（常被分数线砍）</td><td><span class="num up">3 条</span>（稳定）</td></tr>
+</table>
+<div class="note">真实验证（每次都由大模型现场重新改写，不是复现测试）：宽松命中率 100%、严格 96.8%——有 1 条会因大模型改写的随机波动掉出前 3，这是目前最大的不确定性来源（不是检索算法问题）。</div>
+</div>
+
+<h2>5. 诚实备注（别把数字当圣旨）</h2>
+<div class="card">
+<ul>
+  <li><b>只有 31 条测试数据</b>：参数是在这 31 条上调出来的，有一定"适应测试集"的风险。所以最终取值故意选的是<b>一段表现都好的平台区中间值</b>（k=3、b=0.4、α=0.3），而不是极端最优值。</li>
+  <li><b>覆盖率还有提升空间</b>（73.7%）：有些宽泛问题对应 2~3 篇同族笔记，前 3 名额不够全装下——所有相关笔记其实都在候选里，属于"名额"紧张，不是检索失败。</li>
+  <li><b>改索引后必须重建</b>：这次已经重建过了（旧产物自动备份在 <code>store/_backup_20261014_135659/</code>）。以后改动索引相关参数，要跑 <code>python scripts/rag_opt/rebuild_index.py</code>。</li>
+  <li><b>外部现状</b>：DeepSeek API 当前返回 503 过载（官方建议临时换备用服务商）；模型名已从不存在的 <code>deepseek-v4-flash</code> 修正为 <code>deepseek-flash</code>。</li>
+</ul>
+</div>
+
+</div>
+</body>
+</html>

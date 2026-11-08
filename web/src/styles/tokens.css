@@ -1,0 +1,172 @@
+/* ==========================================================================
+   设计令牌 · 唯一真相
+   --------------------------------------------------------------------------
+   三层结构：base（物理色）→ role（语义角色）→ component（组件局部）
+   硬规则：组件样式只允许引用 role 层或自己的局部变量，禁止直接引用 base 层。
+   详见 docs/frontend_rebuild_design.md §5
+   ========================================================================== */
+
+:root {
+  /* ---------- base：物理色，仅 role 层可引用 ---------- */
+  /*
+   * 纸面层级：靠**亮度阶梯**建立层次，而不是靠「越上层越黄」。
+   * 原来 card(58% 饱和) / ink(67% 饱和) 比 base(42%) 更黄 —— 层次反了，
+   * 大面积高饱和暖黄还会让人视觉疲劳（"暗沉困倦"）。
+   * 现在越往上的层越接近纯白，饱和度递减。
+   */
+  --c-paper: #f7f2e8;        /* base  L95% S41% */
+  --c-paper-deep: #efe8da;   /* sunken L90% S37% */
+  --c-paper-card: #fffdf9;   /* card  L99% S100%→极低色差，靠亮度抬起 */
+  --c-paper-ink: #ffffff;    /* overlay 纯白 */
+
+  --c-ink-900: #2a231c;
+  --c-ink-700: #4a3f33;
+  --c-ink-500: #6c5f4e;
+  --c-ink-400: #746750; /* 小字辅助文案下限，对比度 4.85:1 */
+  --c-ink-300: #a89a86; /* 仅装饰/分隔，不得承载文字 */
+
+  --c-red-600: #a03820;
+  --c-red-500: #c24a2e;
+  --c-red-200: #e2b3a3;
+  --c-gold-700: #7a5c2e; /* 黄铜深色：浅黄底上 5.12:1，用于 warning 文字 */
+  --c-gold-500: #b08a4c;
+  --c-teal-500: #4e6d6a;
+  --c-purple-500: #7a5c8e;
+  --c-green-500: #4f8a5b;
+  --c-danger-600: #b4372e;
+
+  /* ---------- role：语义角色 ---------- */
+
+  /* 表面 */
+  --surface: var(--c-paper);
+  --surface-raised: var(--c-paper-card);
+  --surface-sunken: var(--c-paper-deep);
+  --surface-overlay: var(--c-paper-ink);
+  --surface-inverse: var(--c-ink-900);
+  --surface-accent-ghost: rgba(194, 74, 46, 0.1);
+  --surface-danger-ghost: rgba(180, 55, 46, 0.06);
+  --surface-warning-ghost: rgba(176, 138, 76, 0.12);
+  --surface-reason-ghost: rgba(122, 92, 142, 0.1);
+
+  /* 文字 */
+  --text-primary: var(--c-ink-900);
+  --text-secondary: var(--c-ink-500); /* 5.45:1 */
+  --text-tertiary: var(--c-ink-400); /* 4.85:1 —— 小字提示的唯一下限 */
+  --text-disabled: var(--c-ink-300);
+  --text-on-dark: var(--c-paper-ink);
+  --text-on-accent: #fff7ee;
+
+  /* 描边与分隔 */
+  /* 边缘是层次的一半：原 --border-soft 与卡片底只差 2 个亮度点，几乎看不见 */
+  --border-strong: #cfc0a6;
+  --border: #d9cdb6;
+  --border-soft: #e6dcc8;
+
+  /* 品牌与状态 */
+  --accent: var(--c-red-500);
+  --accent-deep: var(--c-red-600); /* 5.95:1 —— 任何 <17px 红字必须用它 */
+  --accent-soft: var(--c-red-200); /* 仅作背景/描边，不作文字 */
+  --success: var(--c-green-500);
+  --warning: var(--c-gold-700);
+  --danger: var(--c-danger-600);
+  --reason: var(--c-purple-500);
+
+  /* 图谱实体色（JS 侧经 getComputedStyle 读取，消除双份真相） */
+  --entity-session: var(--c-red-500);
+  --entity-memory: var(--c-gold-500);
+  --entity-document: var(--c-teal-500);
+  --entity-reason: var(--c-purple-500);
+
+  /* 图谱节点浅色底：与三个角色头像的圆盘同源，避免纯色块 */
+  --entity-session-soft: #f6dcd2;
+  --entity-memory-soft: #f3e6cb;
+  --entity-document-soft: #dee8e1;
+  --entity-reason-soft: #e8e0ee;
+
+  /* ---------- 字号：7 级 ----------
+     硬规则：< 13px 只允许时间戳 / ID / 徽章；
+     任何连续阅读内容最小 14px（见 docs/frontend_ux_refinement_plan.md §3.1）。 */
+  --fs-2xs: 12.5px;
+  --fs-xs: 13px;
+  --fs-sm: 14px;
+  --fs-base: 15.5px;
+  --fs-md: 18px;
+  --fs-lg: 23px;
+  --fs-xl: 30px;
+
+  /* ---------- 行高：3 档（中文方块字需要更多行距） ---------- */
+  --lh-tight: 1.4;
+  --lh-body: 1.75;
+  --lh-loose: 2;
+
+  /* ---------- 字重：中文字形上限 700 ---------- */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+
+  /* ---------- 间距：4px 标度，8 级 ---------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* ---------- 圆角：4 档 ---------- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* ---------- 阴影：4 级 ---------- */
+  --ef-0: none;
+  --ef-1: 0 1px 2px rgba(52, 42, 30, 0.07), 0 4px 16px rgba(52, 42, 30, 0.09);
+  --ef-2: 0 8px 28px rgba(52, 42, 30, 0.16);
+  --ef-3: 0 16px 56px rgba(52, 42, 30, 0.24);
+
+  /* ---------- 层级 ---------- */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-rail: 200;
+  --z-drawer: 300;
+  --z-modal: 400;
+  --z-tooltip: 500;
+  --z-toast: 600;
+
+  /* ---------- 动效 ---------- */
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------- 交互态 ---------- */
+  --focus-ring: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--accent);
+
+  /* ---------- 字体族 ----------
+     CJK 用可变字体族名（Variable），并带上度量对齐的 Fallback 族：
+     字体未就绪时用 fallback 渲染，尺寸与目标字体接近，替换时不跳动。 */
+  --font-serif: 'Fraunces', 'Noto Serif SC Variable', 'Noto Serif SC Fallback', 'Songti SC', serif;
+  --font-sans: 'Noto Sans SC Variable', 'Noto Sans SC Fallback', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* ---------- 布局 ---------- */
+  --rail-w: 224px;
+  --rail-w-compact: 72px;
+  --graph-pane-w: 400px;
+  --view-pad-x: clamp(16px, 2.4vw, 38px);
+  /* 阅读/写作最佳行宽。68ch 在大屏上偏窄（15.5px 字号下约 566px），
+     专注模式会显得局促；76ch 约 640px，更接近纸质阅读的舒适宽度。 */
+  --measure: 76ch;
+}
+
+/* 减弱动效：直接把时长压到 0，动画代码无需分支判断 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}

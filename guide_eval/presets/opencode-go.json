@@ -1,0 +1,71 @@
+{
+  "_note": "OpenCode Go（$10/月）实测配置（2026-10-24）。可用端点：https://opencode.ai/zen/go/v1（OpenAI chat/completions），必须带 x-opencode-session header，否则 400 MissingSessionID。已实测：deepseek-v4.1-flash / kimi-k3 / longcat-2.0 / glm-5.3-flash / qwen3.8-flash 可用；claude-haiku-5-5、gpt-6-luna 等报 ModelProtocolUnsupported（走 responses/anthropic 协议）；qwen3.8-max 作 judge 时单次可 >60s 甚至卡住，不建议；deepseek-v4-pro 测试时 503。⚠️ Go 条款写明面向编码 agent 流量并监控滥用，请自行判断研究用途风险。",
+  "models": [
+    {
+      "name": "go-deepseek-v4.1-flash",
+      "provider": "openai",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 2000,
+      "timeout": 180,
+      "extra_headers": {"x-opencode-session": "guide-eval"},
+      "roles": ["candidate"]
+    },
+    {
+      "name": "go-kimi-k3",
+      "provider": "openai",
+      "model": "kimi-k3",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 2000,
+      "timeout": 180,
+      "extra_headers": {"x-opencode-session": "guide-eval"},
+      "roles": ["candidate"]
+    },
+    {
+      "name": "go-longcat-2.0",
+      "provider": "openai",
+      "model": "longcat-2.0",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "temperature": 0.3,
+      "max_tokens": 2000,
+      "timeout": 180,
+      "extra_headers": {"x-opencode-session": "guide-eval"},
+      "roles": ["candidate"]
+    },
+    {
+      "name": "judge-go-glm-5.3-flash",
+      "provider": "openai",
+      "model": "glm-5.3-flash",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "temperature": 0.0,
+      "max_tokens": 2500,
+      "timeout": 120,
+      "json_mode": true,
+      "extra_headers": {"x-opencode-session": "guide-eval"},
+      "roles": ["judge"]
+    },
+    {
+      "name": "sim-go-qwen3.8-flash",
+      "provider": "openai",
+      "model": "qwen3.8-flash",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "temperature": 0.8,
+      "max_tokens": 900,
+      "timeout": 120,
+      "extra_headers": {"x-opencode-session": "guide-eval"},
+      "roles": ["simulator"]
+    }
+  ],
+  "defaults": {
+    "candidate": ["go-deepseek-v4.1-flash", "go-kimi-k3", "go-longcat-2.0"],
+    "judge": ["judge-go-glm-5.3-flash"],
+    "simulator": ["sim-go-qwen3.8-flash"]
+  }
+}

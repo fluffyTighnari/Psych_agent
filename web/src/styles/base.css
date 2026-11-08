@@ -1,0 +1,190 @@
+/* ==========================================================================
+   基础层：reset、排版基线、滚动条
+   只使用 role 层令牌
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+html {
+  /* 移动端地址栏收起时不裁切内容 */
+  height: 100dvh;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+  color: var(--text-primary);
+  background-color: var(--surface);
+  /*
+   * 不用 -webkit-font-smoothing: antialiased。
+   * 那会让浅色底上的小字笔画变细、发尖 —— 正是「小字尖锐」的成因。
+   * 浅底需要正常的次像素渲染才够厚实；只有深色底才需要 antialiased
+   * （深底上的次像素抗锯齿会产生彩色边）。见下方 .on-dark 规则。
+   */
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+/*
+ * 深色背景区域保留 antialiased：深底上的次像素渲染会出彩边，
+ * 这些区域（用户气泡、Toast、tooltip、深色徽章）需要灰度抗锯齿。
+ */
+.on-dark,
+.msg--user .msg__bubble,
+.toast,
+.gc__tip,
+.graph-tooltip {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * 纸张氛围：只留一层几乎不可见的光晕。
+ * 原先是两层半径 1200/900px 的渐变，在大面积米色底上形成一层"雾"，
+ * 把卡片与背景的亮度差抹平了 —— 层次感弱的主因之一。
+ * 现在降到 0.02–0.025，只提供极轻微的冷暖偏移，不再干扰层次。
+ */
+body {
+  background-image:
+    radial-gradient(1400px 700px at 80% -15%, rgba(194, 74, 46, 0.025), transparent 65%),
+    radial-gradient(1000px 600px at -15% 115%, rgba(78, 109, 106, 0.02), transparent 60%);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  color: var(--text-primary);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+a {
+  color: var(--accent-deep);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+img,
+svg,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* ---------- 焦点：仅键盘触发的可见环 ---------- */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--r-sm);
+}
+
+/*
+ * 文本输入类元素豁免全局焦点环。
+ *
+ * 全局 :focus-visible 的 --focus-ring 是「2px 白 + 2px 朱砂」双层描边，
+ * 用在按钮/链接上没问题，但用在**输入框**上就是一整圈抢眼的红框：
+ *   - CodeMirror 的 contenteditable → 正文区一圈朱砂，看起来像误入的红线；
+ *   - textarea / input → 输入框整圈红边，打字时一直占着视线。
+ * 输入类元素有闪烁光标与（各自的）边框加深，已经足够指示焦点。
+ */
+.cm-content:focus-visible,
+.cm-content:focus,
+textarea:focus-visible,
+textarea:focus,
+input:focus-visible,
+input:focus,
+select:focus-visible,
+select:focus {
+  box-shadow: none !important;
+}
+
+/* ---------- 选区 ---------- */
+::selection {
+  background: var(--surface-accent-ghost);
+  color: var(--text-primary);
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--r-pill);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-disabled);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ---------- 动效基线 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

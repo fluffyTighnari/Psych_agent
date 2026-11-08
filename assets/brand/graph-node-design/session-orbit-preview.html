@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会话轨道图标 · 尺寸测试</title>
+<style>
+  body{margin:0;background:#f4efe4;color:#2b2724;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{width:min(960px,calc(100% - 40px));margin:0 auto;padding:40px 0}
+  h1{font-size:22px;margin:0 0 8px}
+  p{color:#6f665d;font-size:13px;line-height:1.8;margin:0 0 28px}
+  .row{display:flex;align-items:flex-end;gap:38px;flex-wrap:wrap;background:#fdfbf5;border:1px solid #e6dcc8;border-radius:16px;padding:30px}
+  .item{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .item span{font:10px/1.5 Consolas,monospace;color:#a29788}
+  .icon{display:block;filter:none}
+  .dark{margin-top:20px;background:#1c1917;border-color:#332b25}
+  .dark span{color:#9a9086}
+  .dark h1,.dark p{color:#ebe3d5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>会话轨道图标 · 尺寸测试</h1>
+  <p>去掉 1024 底色后的图形，按 96 / 52 / 26 / 14 px 查看。52 px 接近图谱会话节点实际尺寸，14 px 是图例尺寸。</p>
+  <div class="row">
+    <div class="item"><img class="icon" src="session-orbit.svg" width="96" height="84" alt=""><span>96 px</span></div>
+    <div class="item"><img class="icon" src="session-orbit.svg" width="52" height="45" alt=""><span>52 px</span></div>
+    <div class="item"><img class="icon" src="session-orbit.svg" width="26" height="23" alt=""><span>26 px</span></div>
+    <div class="item"><img class="icon" src="session-orbit.svg" width="14" height="12" alt=""><span>14 px</span></div>
+  </div>
+  <div class="row dark">
+    <div class="item"><img class="icon" src="session-orbit.svg" width="96" height="84" alt=""><span>96 px</span></div>
+    <div class="item"><img class="icon" src="session-orbit.svg" width="52" height="45" alt=""><span>52 px</span></div>
+    <div class="item"><img class="icon" src="session-orbit.svg" width="26" height="23" alt=""><span>26 px</span></div>
+    <div class="item"><img class="icon" src="session-orbit.svg" width="14" height="12" alt=""><span>14 px</span></div>
+  </div>
+</div>
+</body>
+</html>

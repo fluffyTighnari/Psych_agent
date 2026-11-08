@@ -1,0 +1,8 @@
+blind_id,transcript_file,contradiction_accuracy,depth,autonomy_support,question_fit,overall_effectiveness,note
+M01,review/M01.md,3.5,3.5,2,3,,,
+M02,review/M02.md,3,3.5,1.5,2.5,,,
+M03,review/M03.md,2.5,3,1.5,2,,,
+M04,review/M04.md,2.5,3,2.5,2,,,
+M05,review/M05.md,2.5,3.5,2,2,,,
+M06,review/M06.md,4,4,3.5,3.5,,,
+M07,review/M07.md,3.5,3.5,3.5,4,,,

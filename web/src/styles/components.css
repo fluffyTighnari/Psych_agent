@@ -1,0 +1,207 @@
+/* ==========================================================================
+   组件层：跨组件复用的原子（按钮/面板/徽章/表单）
+   只使用 role 层令牌；组件私有变量写在 :where() 低优先级作用域内
+   ========================================================================== */
+
+/* ---------- 按钮 ---------- */
+.c-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 9px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  cursor: pointer;
+  position: relative;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.c-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.c-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+  box-shadow: none;
+}
+
+.c-btn--primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  box-shadow: 0 3px 10px rgba(194, 74, 46, 0.28);
+}
+
+.c-btn--primary:hover:not(:disabled) {
+  background: var(--accent-deep);
+  box-shadow: 0 5px 18px rgba(194, 74, 46, 0.36);
+}
+
+.c-btn--ghost {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.c-btn--ghost:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
+}
+
+.c-btn--quiet {
+  background: transparent;
+  color: var(--text-secondary);
+  padding-inline: var(--sp-2);
+}
+
+.c-btn--quiet:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.c-btn--danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.c-btn--danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--text-on-accent);
+}
+
+.c-btn--sm {
+  padding: 6px 12px;
+  font-size: var(--fs-xs);
+  border-radius: var(--r-sm);
+}
+
+/* loading 时保持宽度：spinner 绝对定位，文字透明但占据空间 */
+.c-btn.is-loading {
+  color: transparent;
+  pointer-events: none;
+}
+
+.c-btn.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  color: var(--text-on-accent);
+}
+
+.c-btn--ghost.is-loading::after,
+.c-btn--danger.is-loading::after {
+  color: var(--text-secondary);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 图标按钮 ---------- */
+.c-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+
+.c-icon-btn:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.c-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- 表单 ---------- */
+.c-input,
+.c-select,
+.c-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.c-input::placeholder,
+.c-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.c-input:focus,
+.c-select:focus,
+.c-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--surface-accent-ghost);
+}
+
+.c-textarea {
+  resize: vertical;
+  line-height: var(--lh-body);
+}
+
+/* ---------- 应用外壳 ---------- */
+.app-shell {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background-image: url('../assets/paper-noise.svg');
+  background-repeat: repeat;
+  background-size: 140px 140px;
+}
+
+/* ---------- 主内容区 ---------- */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--sp-6) var(--view-pad-x) var(--sp-5);
+}

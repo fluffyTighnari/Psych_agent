@@ -19,11 +19,23 @@ CODE_PARAM_ERR = 400
 CODE_SERVER_ERR = 500
 
 # ===================== 请求参数模型 =====================
+class Attachment(BaseModel):
+    """用户主动引用的资料（附上文档 / 追问某条消息）。"""
+    kind: str = Field("document", description="document=用户笔记, message=上一条回复")
+    doc_id: Optional[str] = None
+    title: str = ""
+    content: str = ""
+    role: Optional[str] = Field(None, description="kind=message 时：guide|advisor")
+
+
 class ChatRequest(BaseModel):
     user_input: str = Field(..., description="用户提问文本")
     situation: Optional[str] = Field(None, description="可选的真实问题情境，用于产出可执行建议")
     role: str = Field("advisor", description="[兼容保留] advisor=建议者/总结者, guide=自我推理引导者；被 mode 取代")
     mode: Optional[str] = Field(None, description="direct=直接咨询, guided=引导咨询；会话首条消息锁定，之后忽略")
+    attachments: Optional[list[Attachment]] = Field(
+        None, description="用户主动引用的资料，优先于检索证据"
+    )
 
 # ===================== 通用序列化工具 =====================
 from dataclasses import asdict

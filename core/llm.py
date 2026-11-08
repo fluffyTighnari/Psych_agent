@@ -1,3 +1,4 @@
+import os
 import ollama
 from openai import OpenAI
 from typing import List, Dict, Generator
@@ -20,7 +21,9 @@ class LLM:
         self.model = model
         self.timeout = timeout
         if model.driver == "ollama":
-            self._client = ollama.Client(timeout=timeout)
+            # 地址可配置（Docker 内指向 ollama 服务名），默认本机 Ollama，行为不变
+            host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+            self._client = ollama.Client(host=host, timeout=timeout)
         elif model.driver == "api":
             self._client = OpenAI(
                 api_key=model.api_key,

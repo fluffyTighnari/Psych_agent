@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会话图标 · 双色线稿</title>
+<style>
+  body{margin:0;background:#f4efe4;color:#2b2724;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{width:min(1040px,calc(100% - 40px));margin:0 auto;padding:38px 0 52px}
+  h1{font-size:22px;margin:0 0 6px}
+  .lead{color:#6f665d;font-size:13px;line-height:1.8;margin:0 0 26px;max-width:760px}
+  .panel{background:#fdfbf5;border:1px solid #e6dcc8;border-radius:16px;padding:24px 28px;margin-bottom:18px}
+  .panel h2{font-size:13px;margin:0 0 4px;color:#8b7f70;font-weight:600}
+  .panel .note{font-size:11px;color:#a29788;margin:0 0 18px;line-height:1.6}
+  .row{display:flex;align-items:flex-end;gap:34px;flex-wrap:wrap}
+  .item{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .item span{font:10px/1.4 Consolas,monospace;color:#a29788}
+  .dark{background:#1c1917;border-color:#332b25}
+  .dark h2,.dark .note{color:#9a9086}
+  .dark .item span{color:#8e8378}
+  svg{display:block;overflow:visible}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>会话图标 · 双色线稿</h1>
+  <p class="lead">把原图拆成“外层珊瑚环 + 内层浅桃心 + 轨道线 + 两点”，用会话色的深浅两层做线稿。不是把 1024 图直接塞进去，而是保留它的识别结构。</p>
+
+  <section class="panel">
+    <h2>双色线稿 · 浅色</h2>
+    <p class="note">96 / 52 / 26 / 14 px。14px 仍保留外轮廓与一个轨道缺口。</p>
+    <div class="row">
+      <div class="item"><svg width="96" height="96" viewBox="0 0 48 48"><use href="#orbit2"/></svg><span>96 px</span></div>
+      <div class="item"><svg width="52" height="52" viewBox="0 0 48 48"><use href="#orbit2"/></svg><span>52 px</span></div>
+      <div class="item"><svg width="26" height="26" viewBox="0 0 48 48"><use href="#orbit2"/></svg><span>26 px</span></div>
+      <div class="item"><svg width="14" height="14" viewBox="0 0 48 48"><use href="#orbit2"/></svg><span>14 px</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>原图对照 · 浅色</h2>
+    <div class="row">
+      <div class="item"><img src="session-orbit.svg" width="52" height="45" alt=""><span>52 px</span></div>
+      <div class="item"><img src="session-orbit.svg" width="26" height="23" alt=""><span>26 px</span></div>
+      <div class="item"><img src="session-orbit.svg" width="14" height="12" alt=""><span>14 px</span></div>
+    </div>
+  </section>
+
+  <section class="panel dark">
+    <h2>双色线稿 · 暗色</h2>
+    <p class="note">外层用暗色会话色，内层回到深色底。</p>
+    <div class="row">
+      <div class="item"><svg width="52" height="52" viewBox="0 0 48 48"><use href="#orbit2-dark"/></svg><span>52 px</span></div>
+      <div class="item"><svg width="26" height="26" viewBox="0 0 48 48"><use href="#orbit2-dark"/></svg><span>26 px</span></div>
+      <div class="item"><svg width="14" height="14" viewBox="0 0 48 48"><use href="#orbit2-dark"/></svg><span>14 px</span></div>
+      <div class="item"><img src="session-orbit.svg" width="52" height="45" alt=""><span>原图 52</span></div>
+    </div>
+  </section>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="orbit2" viewBox="0 0 48 48">
+    <path d="M16 9.6 C22.8 7.8 31.8 9.0 36.4 13.8 C41.0 18.6 41.4 26.8 37.0 32.2 C32.6 37.6 23.4 39.4 17.0 35.8 C10.6 32.2 8.6 24.6 11.4 18.6 C12.6 15.4 14.0 11.6 16 9.6 Z" style="fill:#f6dcd2;stroke:#c24a2e;stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke"/>
+    <path d="M20.2 14.6 C26.2 13.0 31.6 15.6 34.2 20.2 C36.8 24.8 34.4 30.0 29.4 32.4 C24.4 34.8 18.8 32.6 16.8 27.8 C14.8 23.0 16.2 17.0 20.2 14.6 Z" style="fill:#fffaf0;stroke:none"/>
+    <path d="M20.2 14.6 C26.2 13.0 31.6 15.6 34.2 20.2 C36.8 24.8 34.4 30.0 29.4 32.4 C24.4 34.8 18.8 32.6 16.8 27.8 C14.8 23.0 16.2 17.0 20.2 14.6 Z" style="fill:none;stroke:#c24a2e;stroke-width:.9;opacity:.35;vector-effect:non-scaling-stroke"/>
+    <path d="M5.4 30.6 C11.2 27.8 18.0 27.4 24.2 29.4 C30.4 31.4 36.8 30.2 42.6 25.4" style="fill:none;stroke:#c24a2e;stroke-width:1.2;opacity:.62;stroke-linecap:round;vector-effect:non-scaling-stroke"/>
+    <circle cx="8.1" cy="29.6" r="1.55" style="fill:#c24a2e;opacity:.78"/>
+    <circle cx="34.6" cy="16.2" r="1.5" style="fill:#c24a2e;opacity:.78"/>
+  </symbol>
+
+  <symbol id="orbit2-dark" viewBox="0 0 48 48">
+    <path d="M16 9.6 C22.8 7.8 31.8 9.0 36.4 13.8 C41.0 18.6 41.4 26.8 37.0 32.2 C32.6 37.6 23.4 39.4 17.0 35.8 C10.6 32.2 8.6 24.6 11.4 18.6 C12.6 15.4 14.0 11.6 16 9.6 Z" style="fill:#3a2520;stroke:#e0705a;stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke"/>
+    <path d="M20.2 14.6 C26.2 13.0 31.6 15.6 34.2 20.2 C36.8 24.8 34.4 30.0 29.4 32.4 C24.4 34.8 18.8 32.6 16.8 27.8 C14.8 23.0 16.2 17.0 20.2 14.6 Z" style="fill:#1c1917;stroke:none"/>
+    <path d="M20.2 14.6 C26.2 13.0 31.6 15.6 34.2 20.2 C36.8 24.8 34.4 30.0 29.4 32.4 C24.4 34.8 18.8 32.6 16.8 27.8 C14.8 23.0 16.2 17.0 20.2 14.6 Z" style="fill:none;stroke:#e0705a;stroke-width:.9;opacity:.35;vector-effect:non-scaling-stroke"/>
+    <path d="M5.4 30.6 C11.2 27.8 18.0 27.4 24.2 29.4 C30.4 31.4 36.8 30.2 42.6 25.4" style="fill:none;stroke:#e0705a;stroke-width:1.2;opacity:.62;stroke-linecap:round;vector-effect:non-scaling-stroke"/>
+    <circle cx="8.1" cy="29.6" r="1.55" style="fill:#e0705a;opacity:.82"/>
+    <circle cx="34.6" cy="16.2" r="1.5" style="fill:#e0705a;opacity:.82"/>
+  </symbol>
+</svg>
+</body>
+</html>

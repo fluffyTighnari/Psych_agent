@@ -18,6 +18,9 @@ def _get_conn():
     conn.execute("PRAGMA synchronous=NORMAL;")
     return conn
 
+# 单轮（一次 AgentExecutor invoke）内知识检索工具的代码层硬预算
+RETRIEVE_BUDGET_PER_TURN = 2
+
 class SingleSessionState:
     def __init__(self):
         self.lock = threading.RLock()  # 会话读写并发锁：agent/tools/api 共享，同线程可重入
@@ -32,6 +35,11 @@ class SingleSessionState:
         self.mode_problem: str = "" # guided 锚定的核心问题
         self.mode_situation: str = "" # guided 锚定的具体情境
         self.guided_ended: bool = False # 本轮引导是否已结束（【结束】后待新一轮）
+        self.pending_docs: list = [] # 本轮 retrieve_knowledge_tool 检索到、待 consult 消费的知识证据（仅内存，跨工具临时传递，不持久化）
+        self.retrieve_budget_left: int = RETRIEVE_BUDGET_PER_TURN  # 本轮剩余检索预算（仅内存，每轮 invoke 前重置，不进 DB）
+        self.last_evidence: dict = {}  # 本轮最后一次检索的证据评估（Evaluator.evaluate_evidence 结果，仅内存）
+        self.attachments: list = []  # 本轮用户主动引用的资料（附上文档 / 追问某条回复），仅内存
+        self.remediation_count: int = 0  # 本轮已执行 CRAG 补救的次数（硬上限 1，仅内存）
         self.load_state()
 
     def init_session_db(self):
@@ -154,6 +162,20 @@ class SingleSessionState:
             "guided_reasons": self.guided_reasons,
         }
 
+    def reset_turn_runtime(self):
+        """每轮 AgentExecutor invoke 前重置「仅内存」的运行时字段。
+
+        覆盖检索预算、证据评估、补救计数与待消费证据，防止跨轮泄漏：
+        - 预算不重置 → 上一轮耗尽的预算会让本轮无法检索；
+        - 证据状态不重置 → 上一轮的 evidence_gap 会误判本轮纯对话；
+        - pending_docs 不重置 → 上一轮未被 consult 消费的文档会串进本轮。
+        """
+        self.retrieve_budget_left = RETRIEVE_BUDGET_PER_TURN
+        self.last_evidence = {}
+        self.remediation_count = 0
+        self.pending_docs = []
+        self.attachments = []
+
     def clear_all(self):
         """清空当前会话所有数据+数据库记录"""
         with self.lock:
@@ -174,6 +196,10 @@ class SingleSessionState:
             self.mode_problem = ""
             self.mode_situation = ""
             self.guided_ended = False
+            self.pending_docs = []
+            self.retrieve_budget_left = RETRIEVE_BUDGET_PER_TURN
+            self.last_evidence = {}
+            self.remediation_count = 0
 
 
 SESSION_STATE = SingleSessionState()

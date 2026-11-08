@@ -22,21 +22,31 @@ from api.common import CODE_OK, CODE_PARAM_ERR, catch_exception, resp
 from config.model_config import EMBEDDING_MODEL, RERANKING_MODEL
 from config.path_config import BM25_PATH
 from config.topic_config import VALID_TOPICS
+from core.helper import retrieval_config as RC
 from core.helper.knowledge_cache import KNOWLEDGE_CACHE
 from core.helper.trace_tracker import TraceTracker, use_tracker, use_tracker_reset
 
 router = APIRouter(prefix="/retrieval", tags=["检索优化调试"])
 
-# ===================== 默认值与合法区间（与契约 §3 一致） =====================
-DEFAULT_RAW_TOP_K = 6
-DEFAULT_FINAL_TOP_K = 3
-DEFAULT_RRF_K = 60
-DEFAULT_SCORE_THRESHOLD = 0.08
+# ===================== 默认值与合法区间（契约 §3 一致；默认值取调优后的最优配置） =====================
+DEFAULT_RAW_TOP_K = RC.DEFAULT_RAW_TOP_K
+DEFAULT_FINAL_TOP_K = RC.DEFAULT_FINAL_TOP_K
+DEFAULT_RRF_K = RC.DEFAULT_RRF_K
+DEFAULT_SCORE_THRESHOLD = RC.DEFAULT_SCORE_THRESHOLD
+DEFAULT_W_DENSE = RC.DEFAULT_W_DENSE
+DEFAULT_W_BM25 = RC.DEFAULT_W_BM25
+DEFAULT_RERANK_POOL = RC.DEFAULT_RERANK_POOL
+DEFAULT_USE_HYDE = RC.DEFAULT_USE_HYDE
 
-RAW_TOP_K_RANGE = (1, 50)
-FINAL_TOP_K_RANGE = (1, 50)
-RRF_K_RANGE = (1, 1000)
-SCORE_THRESHOLD_RANGE = (0.0, 1.0)
+RAW_TOP_K_RANGE = RC.RAW_TOP_K_RANGE
+FINAL_TOP_K_RANGE = RC.FINAL_TOP_K_RANGE
+RRF_K_RANGE = RC.RRF_K_RANGE
+SCORE_THRESHOLD_RANGE = RC.SCORE_THRESHOLD_RANGE
+W_RANGE = RC.W_RANGE
+RERANK_POOL_RANGE = RC.RERANK_POOL_RANGE
+BLEND_ALPHA_RANGE = RC.BLEND_ALPHA_RANGE
+RERANK_MODES = RC.RERANK_MODES
+
 
 DOC_LIMIT_DEFAULT = 200
 DOC_LIMIT_RANGE = (1, 500)
@@ -47,29 +57,43 @@ STAGE_DEFS = [
     {
         "name": "optimize_prompt",
         "label": "Query 优化",
-        "desc": "调用本地 LLM 将原始提问改写为检索用 search_query，并抽取 match_topics 与 keywords，供后续两条召回链路复用。",
+        "desc": "调用本地 LLM 把原始提问改写成检索用 search_query，并抽取 match_topics、keywords、"
+                "distinctive_terms（逐字取自原话的高区分度词）与两篇 HyDE 假设文档"
+                "（hyde_experience 经历式 / hyde_principle 原则式），供后续召回链路复用。",
     },
     {
         "name": "dense",
         "label": "Dense 向量召回",
-        "desc": "把 search_query 与原始提问编码为向量，在 ChromaDB 中按相似度召回 raw_top_k 篇候选，擅长语义相近的表达。",
+        "desc": "把「原始提问」与「改写问句」分别编码后按权重加权平均（默认 1 : 0.5）再归一化，"
+                "在 ChromaDB 中按相似度召回 raw_top_k 篇候选，擅长语义相近的表达。",
     },
     {
         "name": "bm25",
         "label": "BM25 稀疏召回",
-        "desc": "对原始提问分词并叠加 match_topics/keywords 构造词项，在 BM25 标签索引中召回 raw_top_k 篇候选，擅长关键词精确命中。",
+        "desc": "把原话、distinctive_terms、改写问句、keywords、topics 按 BM25 查询权重拼成加权词项序列，"
+                "在富索引（标题+摘要+关键词+主题+周记三段+正文）上召回 raw_top_k 篇候选。",
+    },
+    {
+        "name": "hyde",
+        "label": "HyDE 假设文档召回",
+        "desc": "可选第 3 条链路：用 LLM 生成的假设「经历式 / 原则式」笔记分别编码后召回，"
+                "补足短口语日记与长结构化周记两种文档形态的语义落点（默认关闭）。",
     },
     {
         "name": "rrf",
         "label": "RRF 融合",
-        "desc": "用倒数排名融合（k=rrf_k）合并 dense 与 BM25 候选；只要两条召回链路同时启用即自动执行，无需单独依赖。",
+        "desc": "加权倒数排名融合（score += w / (rank + rrf_k)）：w_dense / w_bm25 控制两路权重，"
+                "rrf_k 控制排名折扣强度（k 越小越看重高排名）。只要两条召回链路同时启用即自动执行。",
     },
     {
         "name": "rerank",
         "label": "Rerank 重排",
-        "desc": "用 bge-reranker 交叉编码器对上游候选逐条打分，过滤低于 score_threshold 的结果并截断到 final_top_k。",
+        "desc": "先按融合排名截断到前 rerank_pool 篇，再用 bge-reranker 交叉编码器逐条打分。"
+                "默认 blend 模式：最终分 = 融合排名归一化分 + blend_alpha × 重排概率，"
+                "既保留融合先验又用重排精修（sort=完全由重排决定，filter=仅作置信闸门）。",
     },
 ]
+
 
 
 # ===================== 序列化工具 =====================
@@ -172,7 +196,8 @@ def _convert_final(final: Any) -> Dict[str, Any]:
 
 def _extract_optimized(stages: List[Dict[str, Any]]) -> Dict[str, Any]:
     """从 optimize_prompt 阶段的 extra 字段取 Query 优化结果；缺失/异常时给空结构兜底。"""
-    empty = {"search_query": "", "match_topics": [], "keywords": []}
+    empty = {"search_query": "", "match_topics": [], "keywords": [], "distinctive_terms": [],
+             "hyde_experience": "", "hyde_principle": ""}
     for stage in stages:
         if not isinstance(stage, dict) or stage.get("name") != "optimize_prompt":
             continue
@@ -183,6 +208,9 @@ def _extract_optimized(stages: List[Dict[str, Any]]) -> Dict[str, Any]:
             "search_query": _as_str(extra.get("search_query")),
             "match_topics": _as_str_list(extra.get("match_topics")),
             "keywords": _as_str_list(extra.get("keywords")),
+            "distinctive_terms": _as_str_list(extra.get("distinctive_terms")),
+            "hyde_experience": _as_str(extra.get("hyde_experience")),
+            "hyde_principle": _as_str(extra.get("hyde_principle")),
         }
     return empty
 
@@ -203,8 +231,16 @@ class RetrievalDebugReq(BaseModel):
     rerank: bool = Field(True, description="是否启用 Rerank 重排")
     raw_top_k: int = Field(DEFAULT_RAW_TOP_K, description="召回阶段候选数")
     final_top_k: int = Field(DEFAULT_FINAL_TOP_K, description="最终返回候选数")
-    rrf_k: int = Field(DEFAULT_RRF_K, description="RRF 融合常数 k")
+    rrf_k: int = Field(DEFAULT_RRF_K, description="RRF 排名折扣常数 k（越小越看重高排名）")
     score_threshold: Optional[float] = Field(None, description="重排分数阈值，null 表示用默认值")
+    # ---- v2 调优开关 ----
+    w_dense: float = Field(DEFAULT_W_DENSE, description="加权 RRF 中 dense 一路的权重")
+    w_bm25: float = Field(DEFAULT_W_BM25, description="加权 RRF 中 BM25 一路的权重")
+    use_hyde: bool = Field(DEFAULT_USE_HYDE, description="是否启用 HyDE 假设文档的第 3 条召回链路")
+    rerank_pool: int = Field(DEFAULT_RERANK_POOL, description="重排前按融合排名截断的候选数，0 表示不截断")
+    rerank_mode: str = Field(RC.DEFAULT_RERANK_MODE,
+                             description="重排用法：blend=融合排名分+alpha×重排分 / filter=仅置信闸门 / sort=完全由重排决定")
+    blend_alpha: float = Field(RC.DEFAULT_BLEND_ALPHA, description="blend 模式下 cross-encoder 分数的权重")
 
 
 def _validate_debug_req(req: RetrievalDebugReq) -> Optional[str]:
@@ -221,9 +257,18 @@ def _validate_debug_req(req: RetrievalDebugReq) -> Optional[str]:
         SCORE_THRESHOLD_RANGE[0] <= req.score_threshold <= SCORE_THRESHOLD_RANGE[1]
     ):
         return f"score_threshold 需在 [{SCORE_THRESHOLD_RANGE[0]},{SCORE_THRESHOLD_RANGE[1]}] 区间或为 null"
+    if not (W_RANGE[0] <= req.w_dense <= W_RANGE[1]) or not (W_RANGE[0] <= req.w_bm25 <= W_RANGE[1]):
+        return f"w_dense / w_bm25 需在 [{W_RANGE[0]},{W_RANGE[1]}] 区间"
+    if not (RERANK_POOL_RANGE[0] <= req.rerank_pool <= RERANK_POOL_RANGE[1]):
+        return f"rerank_pool 需在 [{RERANK_POOL_RANGE[0]},{RERANK_POOL_RANGE[1]}] 区间"
+    if req.rerank_mode not in RERANK_MODES:
+        return f"rerank_mode 仅支持 {' / '.join(RERANK_MODES)}"
+    if not (BLEND_ALPHA_RANGE[0] <= req.blend_alpha <= BLEND_ALPHA_RANGE[1]):
+        return f"blend_alpha 需在 [{BLEND_ALPHA_RANGE[0]},{BLEND_ALPHA_RANGE[1]}] 区间"
     if not any((req.dense, req.bm25, req.rrf, req.rerank)):
         return "至少选择一种检索方式"
     return None
+
 
 
 # ===================== 接口 1：POST /retrieval/debug =====================
@@ -268,6 +313,12 @@ def run_retrieval_debug(req: RetrievalDebugReq):
             final_top_k=req.final_top_k,
             rrf_k=req.rrf_k,
             score_threshold=req.score_threshold,
+            w_dense=req.w_dense,
+            w_bm25=req.w_bm25,
+            use_hyde=req.use_hyde,
+            rerank_pool=req.rerank_pool,
+            rerank_mode=req.rerank_mode,
+            blend_alpha=req.blend_alpha,
             trace=trace,
         )
     except ValueError as exc:
@@ -291,6 +342,7 @@ def run_retrieval_debug(req: RetrievalDebugReq):
             "bm25": bool(req.bm25),
             "rrf": bool(req.rrf),
             "rerank": bool(req.rerank),
+            "hyde": bool(req.use_hyde),
         },
         "params": {
             "raw_top_k": req.raw_top_k,
@@ -299,6 +351,12 @@ def run_retrieval_debug(req: RetrievalDebugReq):
             "score_threshold": (
                 DEFAULT_SCORE_THRESHOLD if req.score_threshold is None else req.score_threshold
             ),
+            "w_dense": req.w_dense,
+            "w_bm25": req.w_bm25,
+            "use_hyde": bool(req.use_hyde),
+            "rerank_pool": req.rerank_pool,
+            "rerank_mode": req.rerank_mode,
+            "blend_alpha": req.blend_alpha,
         },
         "enabled_pipeline": [str(s.get("name", "")) for s in stages if isinstance(s, dict)],
         "optimized": _extract_optimized(stages),
@@ -429,6 +487,16 @@ def get_retrieval_meta():
     except Exception:
         vector_count = None
 
+    # BM25 索引规格（只读探测，不触发重建；文件缺失时保持 None）
+    bm25_component = None
+    try:
+        from core.helper.BM25 import BM25TagIndexer
+
+        if BM25_PATH.exists():
+            bm25_component = BM25TagIndexer(documents=[], bm25_path=BM25_PATH)
+    except Exception:
+        bm25_component = None
+
     data = {
         "topics": sorted(VALID_TOPICS),
         "doc_count": len(KNOWLEDGE_CACHE.documents),
@@ -443,6 +511,22 @@ def get_retrieval_meta():
             "final_top_k": DEFAULT_FINAL_TOP_K,
             "rrf_k": DEFAULT_RRF_K,
             "score_threshold": DEFAULT_SCORE_THRESHOLD,
+            "w_dense": DEFAULT_W_DENSE,
+            "w_bm25": DEFAULT_W_BM25,
+            "use_hyde": DEFAULT_USE_HYDE,
+            "rerank_pool": DEFAULT_RERANK_POOL,
+            "rerank_mode": RC.DEFAULT_RERANK_MODE,
+            "blend_alpha": RC.DEFAULT_BLEND_ALPHA,
+        },
+        "index_spec": {
+            "bm25_mode": getattr(bm25_component, "index_spec", {}).get("mode"),
+            "bm25_field_weights": getattr(bm25_component, "index_spec", {}).get("field_weights"),
+            "bm25_b": getattr(bm25_component, "b", None),
+            "bm25_k1": getattr(bm25_component, "k1", None),
+            "dense_doc_variant": RC.DENSE_DOC_VARIANT,
+            "rerank_input_variant": RC.RERANK_INPUT_VARIANT,
+            "bm25_query_weights": RC.BM25_QUERY_WEIGHTS,
+            "dense_query_weights": RC.DENSE_QUERY_WEIGHTS,
         },
         "stages": [dict(stage) for stage in STAGE_DEFS],
     }

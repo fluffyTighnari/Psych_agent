@@ -1,0 +1,50 @@
+/* ==========================================================================
+   工具类：极少量，只在模板里反复出现的才收进来
+   ========================================================================== */
+
+.is-hidden {
+  display: none !important;
+}
+
+/* 屏幕阅读器可见、视觉不可见 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 文本截断 */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 等宽数字，避免计数跳动 */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 骨架微光：reduced-motion 下由 base.css 自动静止 */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}

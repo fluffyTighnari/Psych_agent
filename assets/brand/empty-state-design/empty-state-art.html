@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>空态图形 · 四案</title>
+<style>
+  :root{
+    --paper:#f4efe4;
+    --paper-card:#fffdf9;
+    --paper-deep:#efe6d5;
+    --ink:#2a231c;
+    --ink-2:#4a3f33;
+    --ink-3:#6c5f4e;
+    --ink-4:#9b8b75;
+    --line:#d9cdb6;
+    --line-soft:#e6dcc8;
+    --coral:#c24a2e;
+    --coral-bright:#e9634f;
+    --peach:#f7b78f;
+    --gold:#d9a45b;
+    --serif:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong","SimSun",serif;
+    --sans:"Noto Sans SC","Source Han Sans SC","Microsoft YaHei","PingFang SC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(circle at 16% 0%, rgba(255,255,255,.56), transparent 34%),
+      radial-gradient(circle at 88% 18%, rgba(247,183,143,.08), transparent 28%),
+      var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  .sheet{
+    width:min(1180px, calc(100% - 72px));
+    margin:0 auto;
+    padding:58px 0 72px;
+  }
+
+  /* ---------- header ---------- */
+  .mast{display:flex;align-items:flex-start;justify-content:space-between;gap:36px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+  .mast__left{min-width:0}
+  .eyebrow{
+    display:flex;align-items:center;gap:10px;
+    font-size:12px;letter-spacing:.18em;color:var(--ink-3);
+    margin:0 0 18px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--coral);display:block}
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(34px,4.1vw,52px);
+    line-height:1.18;
+    letter-spacing:.02em;
+    margin:0 0 14px;
+  }
+  .lede{
+    margin:0;max-width:660px;
+    color:var(--ink-3);font-size:14.5px;line-height:1.9;
+  }
+  .mast__right{
+    flex:0 0 auto;text-align:right;
+    font-size:12px;line-height:1.9;color:var(--ink-3);
+    padding-top:4px;
+  }
+  .mast__right b{display:block;font-family:var(--serif);font-size:22px;font-weight:500;color:var(--ink);letter-spacing:.08em}
+  .mast__right span{display:block;margin-top:7px}
+
+  /* ---------- principles ---------- */
+  .rules{
+    display:grid;grid-template-columns:1.15fr 1fr 1fr;
+    gap:22px 32px;
+    padding:24px 0 30px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .rule{display:flex;gap:12px;align-items:flex-start}
+  .rule__n{font-family:var(--serif);font-size:12px;color:var(--coral);padding-top:2px;min-width:18px}
+  .rule p{margin:0;font-size:12.5px;line-height:1.8;color:var(--ink-3)}
+  .rule b{color:var(--ink-2);font-weight:600}
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:0;
+    border-left:1px solid var(--line-soft);
+    border-top:1px solid var(--line-soft);
+    margin-top:34px;
+  }
+  .cand{
+    padding:26px 28px 24px;
+    border-right:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft);
+    background:rgba(255,253,249,.36);
+    display:flex;flex-direction:column;min-height:520px;
+  }
+  .cand__head{display:flex;gap:14px;align-items:baseline;margin-bottom:16px}
+  .cand__no{
+    font-family:var(--serif);font-size:13px;color:var(--coral);
+    letter-spacing:.06em;
+  }
+  .cand h2{
+    margin:0;font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:.03em;
+  }
+  .cand__note{
+    margin:0 0 4px;color:var(--ink-3);font-size:12.5px;line-height:1.85;
+  }
+  .artplate{
+    position:relative;
+    flex:1;
+    min-height:300px;
+    display:grid;place-items:center;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.68), rgba(255,255,255,.2)),
+      var(--paper-card);
+    border:1px solid var(--line-soft);
+    overflow:hidden;
+  }
+  .artplate::after{
+    content:"";position:absolute;inset:12px;border:1px solid rgba(217,205,182,.32);
+    pointer-events:none;
+  }
+  .artplate svg{width:min(74%, 292px);height:auto;display:block}
+  .sizes{
+    display:flex;align-items:flex-end;gap:24px;
+    margin-top:20px;padding-top:16px;
+    border-top:1px dashed var(--line-soft);
+  }
+  .size{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:44px}
+  .size svg{display:block;height:auto}
+  .size span{font-size:10.5px;color:var(--ink-4);letter-spacing:.06em}
+  .size--112 svg{width:112px}
+  .size--72 svg{width:72px}
+  .size--64 svg{width:64px}
+  .size--48 svg{width:48px}
+
+  /* ---------- in situ ---------- */
+  .situ{margin-top:46px}
+  .situ__head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .situ__head h3{margin:0;font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:.03em}
+  .situ__head p{margin:0;font-size:11.5px;color:var(--ink-4);letter-spacing:.06em}
+  .situ__row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-left:1px solid var(--line-soft)}
+  .slot{
+    padding:22px 14px 20px;
+    border-right:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft);
+    background:rgba(255,253,249,.44);
+    text-align:center;
+  }
+  .slot__art{height:112px;display:grid;place-items:center;margin-bottom:10px}
+  .slot__art svg{width:96px;height:96px}
+  .slot b{display:block;font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
+  .slot p{margin:0;font-size:11.5px;line-height:1.7;color:var(--ink-4)}
+  .slot .slot__sub{margin-top:7px;font-size:10.5px;line-height:1.65;color:var(--ink-3)}
+  .slot__tag{display:inline-block;margin-top:10px;font-size:10px;color:var(--coral);letter-spacing:.1em}
+
+  /* ---------- footer ---------- */
+  .foot{margin-top:34px;display:grid;grid-template-columns:1fr auto;gap:30px;align-items:end}
+  .foot p{margin:0;max-width:720px;font-size:12px;line-height:1.9;color:var(--ink-3)}
+  .stamp{
+    width:52px;height:52px;border:1px solid var(--line);border-radius:50%;
+    display:grid;place-items:center;font-family:var(--serif);font-size:17px;color:var(--coral);
+    transform:rotate(-6deg);opacity:.7;
+  }
+
+  @media (max-width: 900px){
+    .sheet{width:min(100% - 36px, 720px);padding-top:34px}
+    .mast{flex-direction:column;gap:20px}
+    .mast__right{text-align:left;padding-top:0}
+    .rules{grid-template-columns:1fr 1fr}
+    .grid{grid-template-columns:1fr}
+    .cand{min-height:auto}
+    .situ__row{grid-template-columns:1fr 1fr}
+    .foot{grid-template-columns:1fr;gap:18px}
+  }
+  @media (max-width: 520px){
+    .rules{grid-template-columns:1fr}
+    .situ__row{grid-template-columns:1fr}
+    .sizes{gap:18px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 四个图形只用内联样式；经 <use> 引用时不依赖外层 CSS。 -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false">
+  <symbol id="art-page" viewBox="0 0 240 240">
+    <rect x="64" y="64" width="124" height="140" rx="12" fill="#e7d6bd" opacity=".52"/>
+    <rect x="58" y="56" width="124" height="140" rx="12" fill="#fdf1df" stroke="#d8bfa1" stroke-width="1.8"/>
+    <path d="M152 56 L182 56 L182 88 Z" fill="#f7b78f"/>
+    <path d="M152 56 L152 86 L182 86" fill="none" stroke="#e9634f" stroke-width="1.4" opacity=".52"/>
+    <path d="M78 156 C58 136 62 110 86 101 C110 92 132 107 130 129 C128 151 104 159 92 143 C80 127 94 113 108 116"
+          fill="none" stroke="#e9634f" stroke-width="3.9" stroke-linecap="round"/>
+    <circle cx="78" cy="156" r="4.0" fill="#e9634f"/>
+    <circle cx="108" cy="116" r="3.6" fill="#f7b78f" stroke="#e9634f" stroke-width="1.4"/>
+    <path d="M42 128 C49 122 52 116 53 109" fill="none" stroke="#d9a45b" stroke-width="1.4" stroke-linecap="round" opacity=".62"/>
+    <path d="M44 144 C48 142 50 139 51 135" fill="none" stroke="#d9a45b" stroke-width="1.2" stroke-linecap="round" opacity=".42"/>
+  </symbol>
+
+  <symbol id="art-window" viewBox="0 0 240 240">
+    <path d="M62 208 L62 102 C62 66 88 40 120 40 C152 40 178 66 178 102 L178 208 Z"
+          fill="#efdcc2" stroke="#d8bfa1" stroke-width="1.8"/>
+    <path d="M78 208 L78 106 C78 78 96 58 120 58 C144 58 162 78 162 106 L162 208 Z" fill="#fff9ef"/>
+    <path d="M86 208 C86 168 99 142 120 142 C141 142 154 168 154 208 Z" fill="#f9d6be" opacity=".86"/>
+    <path d="M98 188 C86 166 94 140 114 135 C136 129 148 146 142 164 C136 182 116 186 108 170 C100 154 114 144 126 150"
+          fill="none" stroke="#e9634f" stroke-width="3.9" stroke-linecap="round"/>
+    <circle cx="98" cy="188" r="4.0" fill="#e9634f"/>
+    <circle cx="126" cy="150" r="3.6" fill="#f7b78f" stroke="#e9634f" stroke-width="1.4"/>
+    <rect x="56" y="204" width="128" height="9" rx="4.5" fill="#e5cdaf"/>
+    <path d="M52 150 C56 142 57 134 56 126" fill="none" stroke="#d9a45b" stroke-width="1.3" stroke-linecap="round" opacity=".58"/>
+    <path d="M46 168 C50 164 52 160 52 156" fill="none" stroke="#d9a45b" stroke-width="1.15" stroke-linecap="round" opacity=".4"/>
+  </symbol>
+
+  <symbol id="art-boat" viewBox="0 0 240 240">
+    <path d="M36 176 C58 162 78 168 98 180 C120 192 150 188 166 170 C180 152 170 134 152 136 C134 138 130 158 146 166 C162 174 182 162 190 148"
+          fill="none" stroke="#e9634f" stroke-width="3.9" stroke-linecap="round"/>
+    <path d="M88 150 L160 150 L144 172 L102 172 Z" fill="#e9634f" stroke="#c24a2e" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M120 98 L120 149 L94 149 Z" fill="#fff9ef" stroke="#e9634f" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="M124 109 L148 149 L124 149 Z" fill="#f7b78f" stroke="#d9a45b" stroke-width="1.3" stroke-linejoin="round" opacity=".95"/>
+    <path d="M120 98 L120 149" fill="none" stroke="#4a3f33" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M72 182 C94 190 142 190 164 180" fill="none" stroke="#d9a45b" stroke-width="1.4" stroke-linecap="round" opacity=".52"/>
+    <circle cx="36" cy="176" r="4.0" fill="#e9634f"/>
+    <circle cx="190" cy="148" r="3.6" fill="#f7b78f" stroke="#e9634f" stroke-width="1.4"/>
+  </symbol>
+
+  <symbol id="art-ring" viewBox="0 0 240 240">
+    <path d="M170 70 C192 96 194 136 172 162 C148 190 106 198 78 178 C50 158 42 118 60 88"
+          fill="none" stroke="#e9634f" stroke-width="5.2" stroke-linecap="round"/>
+    <path d="M82 106 C66 128 74 156 96 170 C118 184 148 176 160 154"
+          fill="none" stroke="#f7b78f" stroke-width="2.6" stroke-linecap="round" opacity=".88"/>
+    <circle cx="170" cy="70" r="4.4" fill="#e9634f"/>
+    <circle cx="60" cy="88" r="4.0" fill="#f7b78f" stroke="#e9634f" stroke-width="1.5"/>
+    <path d="M154 60 C160 66 162 74 161 82" fill="none" stroke="#d9a45b" stroke-width="1.4" stroke-linecap="round" opacity=".55"/>
+    <path d="M166 92 C170 98 171 104 170 110" fill="none" stroke="#d9a45b" stroke-width="1.2" stroke-linecap="round" opacity=".36"/>
+  </symbol>
+</svg>
+
+<main class="sheet">
+  <header class="mast">
+    <div class="mast__left">
+      <p class="eyebrow">空态图形 · 四案</p>
+      <h1>此刻，你在想些什么？</h1>
+      <p class="lede">给起始的空白处一个入口，而不是一个聊天气泡。四个方案都从“向内回旋”出发：话从外面进来，绕过一圈，最后回到自己。</p>
+    </div>
+    <div class="mast__right">
+      <b>迹</b>
+      <span>四版 / 2026.11</span>
+      <span>暖色纸感 · 小尺寸优先</span>
+    </div>
+  </header>
+
+  <section class="rules" aria-label="共同规则">
+    <div class="rule"><span class="rule__n">01</span><p><b>一形 + 一线 + 两点。</b>主体只保留一个可命名的轮廓，回旋线负责“来回”，两个节点对应两轮表达。</p></div>
+    <div class="rule"><span class="rule__n">02</span><p><b>不出现气泡、人物、文字。</b>避免第一眼被读成多人聊天；也不靠“AI 机器人”或“客服”意象。</p></div>
+    <div class="rule"><span class="rule__n">03</span><p><b>按 48px 验收。</b>粗形、少细节、软边；细节只做一层，不做线描堆叠。</p></div>
+  </section>
+
+  <section class="grid" aria-label="四版图形">
+    <article class="cand">
+      <div class="cand__head"><span class="cand__no">01</span><h2>纸页回旋</h2></div>
+      <p class="cand__note">把话写下来。纸页是承载，回旋线是句子在纸面里绕一圈再回来；最接近“写给自己看”。</p>
+      <div class="artplate"><svg viewBox="0 0 240 240" role="img" aria-label="纸页回旋"><use href="#art-page" xlink:href="#art-page"></use></svg></div>
+      <div class="sizes" aria-label="尺寸测试">
+        <div class="size size--112"><svg viewBox="0 0 240 240"><use href="#art-page" xlink:href="#art-page"></use></svg><span>112</span></div>
+        <div class="size size--72"><svg viewBox="0 0 240 240"><use href="#art-page" xlink:href="#art-page"></use></svg><span>72</span></div>
+        <div class="size size--64"><svg viewBox="0 0 240 240"><use href="#art-page" xlink:href="#art-page"></use></svg><span>64</span></div>
+        <div class="size size--48"><svg viewBox="0 0 240 240"><use href="#art-page" xlink:href="#art-page"></use></svg><span>48</span></div>
+      </div>
+    </article>
+
+    <article class="cand">
+      <div class="cand__head"><span class="cand__no">02</span><h2>窗内回声</h2></div>
+      <p class="cand__note">给情绪一个安静的室内。窗是边界，暖光是接纳，回旋线在室内轻轻回荡；像一个只对自己开放的空间。</p>
+      <div class="artplate"><svg viewBox="0 0 240 240" role="img" aria-label="窗内回声"><use href="#art-window" xlink:href="#art-window"></use></svg></div>
+      <div class="sizes" aria-label="尺寸测试">
+        <div class="size size--112"><svg viewBox="0 0 240 240"><use href="#art-window" xlink:href="#art-window"></use></svg><span>112</span></div>
+        <div class="size size--72"><svg viewBox="0 0 240 240"><use href="#art-window" xlink:href="#art-window"></use></svg><span>72</span></div>
+        <div class="size size--64"><svg viewBox="0 0 240 240"><use href="#art-window" xlink:href="#art-window"></use></svg><span>64</span></div>
+        <div class="size size--48"><svg viewBox="0 0 240 240"><use href="#art-window" xlink:href="#art-window"></use></svg><span>48</span></div>
+      </div>
+    </article>
+
+    <article class="cand">
+      <div class="cand__head"><span class="cand__no">03</span><h2>纸舟入涡</h2></div>
+      <p class="cand__note">情绪像一只很小的纸舟。浅涡不是要把人卷走，而是托住它，让它在原地慢慢转一圈；适合“被接住”的感觉。</p>
+      <div class="artplate"><svg viewBox="0 0 240 240" role="img" aria-label="纸舟入涡"><use href="#art-boat" xlink:href="#art-boat"></use></svg></div>
+      <div class="sizes" aria-label="尺寸测试">
+        <div class="size size--112"><svg viewBox="0 0 240 240"><use href="#art-boat" xlink:href="#art-boat"></use></svg><span>112</span></div>
+        <div class="size size--72"><svg viewBox="0 0 240 240"><use href="#art-boat" xlink:href="#art-boat"></use></svg><span>72</span></div>
+        <div class="size size--64"><svg viewBox="0 0 240 240"><use href="#art-boat" xlink:href="#art-boat"></use></svg><span>64</span></div>
+        <div class="size size--48"><svg viewBox="0 0 240 240"><use href="#art-boat" xlink:href="#art-boat"></use></svg><span>48</span></div>
+      </div>
+    </article>
+
+    <article class="cand">
+      <div class="cand__head"><span class="cand__no">04</span><h2>未合之环</h2></div>
+      <p class="cand__note">一个没有合拢的环。话还没有说完，入口一直留着；环内一道浅桃回声，两个节点标记“说出去”和“收回来”。最抽象，也最像“自我循环”。</p>
+      <div class="artplate"><svg viewBox="0 0 240 240" role="img" aria-label="未合之环"><use href="#art-ring" xlink:href="#art-ring"></use></svg></div>
+      <div class="sizes" aria-label="尺寸测试">
+        <div class="size size--112"><svg viewBox="0 0 240 240"><use href="#art-ring" xlink:href="#art-ring"></use></svg><span>112</span></div>
+        <div class="size size--72"><svg viewBox="0 0 240 240"><use href="#art-ring" xlink:href="#art-ring"></use></svg><span>72</span></div>
+        <div class="size size--64"><svg viewBox="0 0 240 240"><use href="#art-ring" xlink:href="#art-ring"></use></svg><span>64</span></div>
+        <div class="size size--48"><svg viewBox="0 0 240 240"><use href="#art-ring" xlink:href="#art-ring"></use></svg><span>48</span></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="situ" aria-label="实际空态比例">
+    <div class="situ__head">
+      <h3>放进空态里</h3>
+      <p>按 96px 图形 + 现有标题/副标题模拟</p>
+    </div>
+    <div class="situ__row">
+      <div class="slot">
+        <div class="slot__art"><svg viewBox="0 0 240 240"><use href="#art-page" xlink:href="#art-page"></use></svg></div>
+        <b>纸页回旋</b>
+        <p>此刻，你在想些什么？</p>
+        <p class="slot__sub">写下你的情绪、困惑或迷茫，我会认真倾听。</p>
+        <span class="slot__tag">01</span>
+      </div>
+      <div class="slot">
+        <div class="slot__art"><svg viewBox="0 0 240 240"><use href="#art-window" xlink:href="#art-window"></use></svg></div>
+        <b>窗内回声</b>
+        <p>此刻，你在想些什么？</p>
+        <p class="slot__sub">写下你的情绪、困惑或迷茫，我会认真倾听。</p>
+        <span class="slot__tag">02</span>
+      </div>
+      <div class="slot">
+        <div class="slot__art"><svg viewBox="0 0 240 240"><use href="#art-boat" xlink:href="#art-boat"></use></svg></div>
+        <b>纸舟入涡</b>
+        <p>此刻，你在想些什么？</p>
+        <p class="slot__sub">写下你的情绪、困惑或迷茫，我会认真倾听。</p>
+        <span class="slot__tag">03</span>
+      </div>
+      <div class="slot">
+        <div class="slot__art"><svg viewBox="0 0 240 240"><use href="#art-ring" xlink:href="#art-ring"></use></svg></div>
+        <b>未合之环</b>
+        <p>此刻，你在想些什么？</p>
+        <p class="slot__sub">写下你的情绪、困惑或迷茫，我会认真倾听。</p>
+        <span class="slot__tag">04</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>四个方案都保留同一套色彩与线宽：纸面 <b>#FFF9EF</b>、珊瑚 <b>#C24A2E</b>、浅桃 <b>#F7B78F</b>、墨 <b>#4A3F33</b>。如果选定其中一版，我再按 112px / 64px 两档调线宽，并给出「浅色 + 深色」和「静态 + 极慢呼吸」两种落地版本。</p>
+    <div class="stamp" aria-hidden="true">迹</div>
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "_note": "生态效度补充（不是主实验）：直接调用已安装的 headless 编码 CLI。注意 CLI 会注入自己的系统提示/工具/工作区上下文，所以它测的是『用户实际用这个产品时的体验』，不是干净单模型行为。不要和 openai API 的条件对比混在同一张表；报告会自动标注 CLI。命令语法随版本变化，运行前先手动试一次。",
+  "models": [
+    {
+      "name": "cli-opencode",
+      "provider": "cli",
+      "cli_cmd": "opencode run",
+      "cli_timeout": 300,
+      "roles": ["candidate"]
+    },
+    {
+      "name": "cli-claude",
+      "provider": "cli",
+      "cli_cmd": "claude -p",
+      "cli_timeout": 300,
+      "roles": ["candidate"]
+    },
+    {
+      "name": "cli-codex",
+      "provider": "cli",
+      "cli_cmd": "codex exec --skip-git-repo-check -",
+      "cli_timeout": 300,
+      "roles": ["candidate"]
+    }
+  ],
+  "defaults": {
+    "candidate": ["cli-opencode", "cli-claude", "cli-codex"]
+  }
+}

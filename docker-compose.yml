@@ -1,0 +1,37 @@
+# ============================================================
+# PsychAgent 后端容器（复用宿主机 Ollama）
+#
+# 前置条件：
+#   1) 项目根已有 .env（从 .env.example 复制并填写 API Key）
+#   2) 宿主机已安装并启动 Ollama（默认监听 http://127.0.0.1:11434）
+#   3) 已拉取本地模型到 ./models（见 README「拉取本地模型」）
+#   4) config/model_store.json 存在（可选；不存在则用默认配置 + .env 注入，
+#      但需先创建空文件再 up，否则 Docker 会把它建成目录）
+#
+# 启动：docker compose up -d --build
+# 访问：http://localhost:8000
+# 停止：docker compose down
+# ============================================================
+services:
+  app:
+    build: .
+    container_name: psych-agent
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # 容器内通过宿主机 Ollama 访问（代码已支持 OLLAMA_HOST 环境变量）
+      OLLAMA_HOST: http://host.docker.internal:11434
+      RELOAD: "0"
+    extra_hosts:
+      # 解析宿主机地址（Linux compose 亦可用）
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # 复用宿主机已有模型/数据/运行态：免重新下载、免重新预处理、配置与数据互通
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./store:/app/store
+      # 网页修改模型配置的持久化文件（保存即生效）；本地缺失时先创建空文件
+      - ./config/model_store.json:/app/config/model_store.json
+    restart: unless-stopped

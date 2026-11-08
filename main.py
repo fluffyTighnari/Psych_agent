@@ -10,6 +10,7 @@ from api import (
     knowledge,
     memory,
     tool, model, graph,
+    connections,
     retrieval_debug
 )
 from config.model_config import BASE_DIR
@@ -33,10 +34,22 @@ app.include_router(memory.router)
 app.include_router(tool.router)
 app.include_router(model.router)
 app.include_router(graph.router)
+app.include_router(connections.router)
 app.include_router(retrieval_debug.router)
 
-# 挂载前端静态页面（路由优先匹配，未命中的请求回落到 web/；用绝对路径，任意工作目录启动均可访问）
-app.mount("/", StaticFiles(directory=str(BASE_DIR / "web"), html=True), name="web")
+# ============ 前端静态资源挂载 ============
+#
+# 新版（Vue 3 + Vite 构建产物，web/dist）是**默认界面**，挂在根路径。
+# 若 dist 尚未构建（如刚 clone 仓库），回退到旧版 web/legacy 保证页面可用。
+#
+# 旧版保留在 web/legacy 作为兜底，确认新版稳定后可删除该目录。
+WEB_DIR = BASE_DIR / "web"
+DIST_DIR = WEB_DIR / "dist"
+LEGACY_DIR = WEB_DIR / "legacy"
+
+_frontend_dir = DIST_DIR if DIST_DIR.is_dir() else LEGACY_DIR
+
+app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="web")
 
 if __name__ == "__main__":
     import uvicorn

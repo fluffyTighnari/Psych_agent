@@ -1,0 +1,154 @@
+[
+  {
+    "turn": 1,
+    "expected_gate": "retrieve",
+    "input": "我发现自己很容易在人际交往后反复回放和自责。上次聊天时我为了显得务实，直接跳过了对方情绪化的表达，只谈怎么解决问题，当时觉得高效，事后却一直想我是不是太冷漠了。这种当时理性、事后内疚的模式，我该怎么理解？",
+    "classify": "COUNSELING",
+    "tool_sequence": [
+      "retrieve_knowledge_tool",
+      "psychological_consult_tool"
+    ],
+    "did_retrieve": true,
+    "did_consult": true,
+    "did_filter": false,
+    "retrieve_docs_principle_exp": [
+      3,
+      0
+    ],
+    "retrieve_evidence": {
+      "query": "人际交往后反复回放自责 当时理性事后内疚",
+      "evidence_status": "success",
+      "evidence_reason": "",
+      "top_score": 0.257093,
+      "remediation_action": ""
+    },
+    "consult_trace": {
+      "retrieved_knowledge": 3,
+      "has_chat_history": false
+    },
+    "reply_sentinel": null,
+    "intent_type": "psychological_consult",
+    "reply_len": 2206,
+    "reply_head_dup": 1,
+    "reply_head": "你卡住的地方，并不是「我是不是太冷漠」，而是：你在信息不足的情况下，用想象代替了对方的真实反馈，然后把这份想象当成了判决书。当时你关闭了对情绪的感知通道，事后这条通道重新打开，却没有新的信息进来填补它，于是它只能靠自我审判来运转。这就是「当时理性、事后内疚」的全部机制——内疚不是因为你做错了什么，而是因为你的共情迟到了，却没有地方落地。\n\n这个模式你其实已经遇到过，也讨论过。上次你同样因为过度聚焦",
+    "elapsed_sec": 28.7,
+    "gate_correct": true,
+    "judge_note": "外层COUNSELING(实际COUNSELING)；retrieve→consult(实际 retrieve=True, consult=True)",
+    "errors": []
+  },
+  {
+    "turn": 2,
+    "expected_gate": "direct",
+    "input": "嗯，你说得对，我当时其实心里挺慌的，又有点委屈，只是没表现出来。",
+    "classify": "COUNSELING",
+    "tool_sequence": [
+      "psychological_consult_tool"
+    ],
+    "did_retrieve": false,
+    "did_consult": true,
+    "did_filter": false,
+    "retrieve_docs_principle_exp": null,
+    "retrieve_evidence": null,
+    "consult_trace": {
+      "retrieved_knowledge": 0,
+      "has_chat_history": true
+    },
+    "reply_sentinel": null,
+    "intent_type": "psychological_consult",
+    "reply_len": 1961,
+    "reply_head_dup": 1,
+    "reply_head": "「我当时其实心里挺慌的，又有点委屈，只是没表现出来」——这句话是这次对话里最关键的一句，因为它改变了问题的性质。之前我们以为你在那个场合是**选择**了务实，实际上你是**退到**务实里去：务实不只是你在管理别人眼中的形象，它还是你当时唯一能站住脚的地方。慌的时候人需要一个确定的东西抓住，“讲方案”就是那个东西，它让你显得稳、也让对话有方向；而委屈被一起按下去，是因为在那个当口，说出“我其实也有点",
+    "elapsed_sec": 19.8,
+    "gate_correct": true,
+    "judge_note": "外层COUNSELING(实际COUNSELING)；直接consult 0检索(实际 retrieve=False)",
+    "errors": []
+  },
+  {
+    "turn": 3,
+    "expected_gate": "retrieve",
+    "input": "那下次再遇到类似情况，我具体该怎么练习，先接住对方的情绪、再一起谈问题？",
+    "classify": "COUNSELING",
+    "tool_sequence": [
+      "retrieve_knowledge_tool",
+      "psychological_consult_tool"
+    ],
+    "did_retrieve": true,
+    "did_consult": true,
+    "did_filter": false,
+    "retrieve_docs_principle_exp": [
+      3,
+      0
+    ],
+    "retrieve_evidence": {
+      "query": "如何先接住对方情绪再一起谈问题 沟通中先共情后解决的方法",
+      "evidence_status": "success",
+      "evidence_reason": "",
+      "top_score": 0.92229,
+      "remediation_action": ""
+    },
+    "consult_trace": {
+      "retrieved_knowledge": 3,
+      "has_chat_history": true
+    },
+    "reply_sentinel": null,
+    "intent_type": "psychological_consult",
+    "reply_len": 2028,
+    "reply_head_dup": 1,
+    "reply_head": "你问的这个问题，本身已经变了性质：从「我是不是太冷漠」变成「下次具体怎么做」，说明你已经从审判自己走到了执行阶段。不过需要先说清一点：你说的「先接住情绪、再谈问题」，真正卡住你的并不是道理不懂；问题在于，你要求自己在开口前半秒钟内判断出「对方此刻需要什么」。这个判断负荷太高，而人在高负荷下会退回最省力的路径，也就是讲方案。所以你这次要练的其实是**把临场判断换成固定流程，让手脚先于脑子**，共情能",
+    "elapsed_sec": 26.6,
+    "gate_correct": true,
+    "judge_note": "外层COUNSELING(实际COUNSELING)；retrieve→consult(实际 retrieve=True, consult=True)",
+    "errors": []
+  },
+  {
+    "turn": 4,
+    "expected_gate": "filter",
+    "input": "帮我找所有关于自我否定的日记。",
+    "classify": "TOOL",
+    "tool_sequence": [
+      "meta_filter_tool"
+    ],
+    "did_retrieve": false,
+    "did_consult": false,
+    "did_filter": true,
+    "retrieve_docs_principle_exp": null,
+    "retrieve_evidence": null,
+    "consult_trace": null,
+    "reply_sentinel": null,
+    "intent_type": "meta_filter",
+    "reply_len": 379,
+    "reply_head_dup": 1,
+    "reply_head": "共 2 篇（不同条件取交集，同一字段多值取并集）\n1. [daily] 2026-07-11 · Anxiety、Uncertainty、Self_Understanding、Personal_Growth · 期末周后作者对未来方向感到不安，新的一天裹挟着过去的焦虑。本学期成果寥寥却遇见了重要的人。发现对本科就业兴趣降低，更热爱…\n2. [daily] 2026-07-19 · Self_Und",
+    "elapsed_sec": 2.0,
+    "gate_correct": true,
+    "judge_note": "外层TOOL(实际TOOL)；筛选工具(实际 ['meta_filter_tool'])",
+    "errors": []
+  },
+  {
+    "turn": 5,
+    "expected_gate": "direct",
+    "input": "谢谢你，我现在感觉清楚多了。",
+    "classify": "COUNSELING",
+    "tool_sequence": [
+      "psychological_consult_tool"
+    ],
+    "did_retrieve": false,
+    "did_consult": true,
+    "did_filter": false,
+    "retrieve_docs_principle_exp": null,
+    "retrieve_evidence": null,
+    "consult_trace": {
+      "retrieved_knowledge": 0,
+      "has_chat_history": true
+    },
+    "reply_sentinel": null,
+    "intent_type": "psychological_consult",
+    "reply_len": 1886,
+    "reply_head_dup": 1,
+    "reply_head": "你最开始问的是「我是不是太冷漠」，现在能说「清楚多了」，说明你真正松开的是那个判决本身——事情的机制从来不在你冷不冷漠，而在于你那天**退到**了务实里，把对方的情绪和自己的慌、自己的委屈一起按了下去，事后又拿想象代替对方的真实反馈，用一份没有信息来源的猜测给自己结了案[[cite:118f42f3d6c95884e8c2a1478f2263a6]]。内疚之所以反复回放、结不了案，是因为它背后压着",
+    "elapsed_sec": 14.0,
+    "gate_correct": true,
+    "judge_note": "外层COUNSELING(实际COUNSELING)；直接consult 0检索(实际 retrieve=False)",
+    "errors": []
+  }
+]

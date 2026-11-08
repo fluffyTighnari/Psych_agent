@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>图谱节点标识 · 三方向样张</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23f6dcd2' stroke='%23c24a2e' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --paper:#f4efe4;
+    --paper-raised:#faf6ec;
+    --ink:#2a231c;
+    --muted:#6f6355;
+    --line:#ddd2bd;
+    --line-soft:#e8dfcd;
+
+    --session-soft:#f6dcd2;
+    --session-ink:#c24a2e;
+    --memory-soft:#f3e6cb;
+    --memory-ink:#b08a4c;
+    --document-soft:#dee8e1;
+    --document-ink:#4e6d6a;
+    --reason-soft:#e8e0ee;
+    --reason-ink:#7a5c8e;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .page{
+    width:min(1100px, calc(100% - 48px));
+    margin:0 auto;
+    padding:56px 0 72px;
+  }
+
+  .hero{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 260px;
+    gap:40px;
+    align-items:end;
+    padding-bottom:34px;
+    border-bottom:1px solid var(--line);
+  }
+
+  .kicker{
+    font-size:12px;
+    letter-spacing:.12em;
+    color:var(--muted);
+    margin:0 0 14px;
+  }
+
+  h1{
+    font-family:"Songti SC","SimSun",serif;
+    font-weight:600;
+    font-size:clamp(30px,4vw,46px);
+    line-height:1.18;
+    letter-spacing:-.02em;
+    margin:0 0 16px;
+  }
+
+  .lede{
+    max-width:640px;
+    color:var(--muted);
+    font-size:15px;
+    margin:0;
+  }
+
+  .hero-note{
+    border-left:2px solid var(--session-ink);
+    padding-left:16px;
+    font-size:12px;
+    line-height:1.9;
+    color:var(--muted);
+  }
+
+  .hero-note b{color:var(--ink);font-weight:600}
+
+  section{margin-top:48px}
+
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:24px;
+    margin-bottom:20px;
+  }
+
+  .section-head h2{
+    font-family:"Songti SC","SimSun",serif;
+    font-size:24px;
+    font-weight:600;
+    margin:0;
+  }
+
+  .section-head p{
+    margin:0;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .tokens{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:1px;
+    background:var(--line-soft);
+    border:1px solid var(--line-soft);
+  }
+
+  .token{
+    background:var(--paper-raised);
+    padding:14px 16px;
+  }
+
+  .token-top{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:8px;
+  }
+
+  .swatch{
+    width:18px;height:18px;border-radius:50%;
+    border:1.5px solid currentColor;
+    flex:0 0 auto;
+  }
+
+  .token b{font-size:13px;font-weight:600}
+  .token code{
+    display:block;
+    font-family:"Cascadia Code","Consolas",monospace;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:.01em;
+  }
+
+  .directions{display:grid;gap:26px}
+
+  .direction{
+    background:var(--paper-raised);
+    border:1px solid var(--line-soft);
+    padding:26px;
+  }
+
+  .direction.recommended{
+    border-color:var(--line);
+    box-shadow:inset 3px 0 0 var(--session-ink);
+  }
+
+  .direction-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 210px;
+    gap:24px;
+    align-items:start;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--line-soft);
+  }
+
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:.08em;
+    margin-bottom:8px;
+  }
+
+  .direction-head h3{
+    font-family:"Songti SC","SimSun",serif;
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 8px;
+  }
+
+  .direction-head p{
+    margin:0;
+    font-size:13px;
+    color:var(--muted);
+    max-width:640px;
+  }
+
+  .score{
+    display:grid;
+    gap:6px;
+    font-size:11px;
+    color:var(--muted);
+    border-left:1px solid var(--line-soft);
+    padding-left:18px;
+  }
+
+  .score div{display:flex;justify-content:space-between;gap:16px}
+  .score b{color:var(--ink);font-weight:500}
+
+  .type-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:1px;
+    background:var(--line-soft);
+    margin-top:20px;
+  }
+
+  .type-card{
+    background:var(--paper-raised);
+    padding:18px 16px 16px;
+    min-width:0;
+  }
+
+  .type-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:8px;
+    margin-bottom:18px;
+  }
+
+  .type-name{font-size:13px;font-weight:600}
+  .type-code{
+    font-family:"Cascadia Code","Consolas",monospace;
+    font-size:10px;
+    color:var(--muted);
+  }
+
+  .icon-line{
+    display:flex;
+    align-items:flex-end;
+    gap:18px;
+    min-height:56px;
+    padding:4px 0 12px;
+  }
+
+  .node-icon{display:block;flex:0 0 auto}
+  .s48{width:48px;height:48px}
+  .s30{width:30px;height:30px}
+  .s24{width:24px;height:24px}
+  .s12{width:12px;height:12px}
+
+  .type-session{--node-soft:var(--session-soft);--node-ink:var(--session-ink)}
+  .type-memory{--node-soft:var(--memory-soft);--node-ink:var(--memory-ink)}
+  .type-document{--node-soft:var(--document-soft);--node-ink:var(--document-ink)}
+  .type-reason{--node-soft:var(--reason-soft);--node-ink:var(--reason-ink)}
+
+  .type-note{
+    margin:0;
+    font-size:12px;
+    line-height:1.7;
+    color:var(--muted);
+    border-top:1px dashed var(--line-soft);
+    padding-top:10px;
+  }
+
+  .legend-strip{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 28px;
+    align-items:center;
+    margin-top:16px;
+    padding:12px 14px;
+    background:var(--paper);
+    border:1px dashed var(--line);
+  }
+
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:11px;
+    color:var(--muted);
+  }
+
+  .legend-item b{font-weight:500;color:var(--ink)}
+
+  .state-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:26px;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px dashed var(--line-soft);
+  }
+
+  .state{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:11px;
+    color:var(--muted);
+  }
+
+  .halo{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;height:38px;
+    border-radius:50%;
+    box-shadow:0 0 0 2px rgba(194,74,46,.24);
+  }
+
+  .faded{opacity:.12}
+
+  .state-note{
+    font-size:11px;
+    line-height:1.7;
+    color:var(--muted);
+    margin:10px 0 0;
+  }
+
+  .mock-wrap{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 260px;
+    gap:1px;
+    background:var(--line-soft);
+    border:1px solid var(--line-soft);
+  }
+
+  .mock{
+    position:relative;
+    min-height:320px;
+    background-color:var(--paper-raised);
+    background-image:
+      linear-gradient(to right, rgba(42,35,28,.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(42,35,28,.045) 1px, transparent 1px);
+    background-size:26px 26px;
+    overflow:hidden;
+  }
+
+  .mock-edges{
+    position:absolute;
+    inset:0;
+    width:100%;height:100%;
+    pointer-events:none;
+  }
+
+  .mock-node{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    white-space:nowrap;
+  }
+
+  .mock-label{
+    font-size:10px;
+    line-height:1.2;
+    color:var(--muted);
+    background:var(--paper-raised);
+    padding:0 3px;
+  }
+
+  .mock-aside{
+    background:var(--paper-raised);
+    padding:22px 20px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    gap:20px;
+  }
+
+  .mock-aside h4{
+    font-family:"Songti SC","SimSun",serif;
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 10px;
+  }
+
+  .mock-aside p{
+    margin:0;
+    font-size:12px;
+    line-height:1.8;
+    color:var(--muted);
+  }
+
+  .mock-aside ul{
+    margin:0;
+    padding-left:16px;
+    font-size:12px;
+    line-height:1.9;
+    color:var(--muted);
+  }
+
+  .decision{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+  }
+
+  .decision th,.decision td{
+    text-align:left;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line-soft);
+    vertical-align:top;
+  }
+
+  .decision th{
+    font-weight:600;
+    color:var(--ink);
+    border-bottom-color:var(--line);
+  }
+
+  .decision td{color:var(--muted)}
+  .decision td b{color:var(--ink);font-weight:600}
+
+  .decision .good{color:var(--document-ink);font-weight:600}
+  .decision .warn{color:var(--session-ink);font-weight:600}
+
+  .closing{
+    margin-top:28px;
+    padding-top:22px;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    gap:24px;
+    align-items:flex-start;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .closing b{color:var(--ink);font-weight:600}
+
+  .closing .right{
+    text-align:right;
+    max-width:360px;
+  }
+
+  @media (max-width:860px){
+    .page{width:calc(100% - 32px);padding-top:36px}
+    .hero{grid-template-columns:1fr;gap:22px}
+    .hero-note{border-left:0;border-top:1px solid var(--line);padding-left:0;padding-top:14px}
+    .tokens{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .direction-head{grid-template-columns:1fr}
+    .score{border-left:0;border-top:1px solid var(--line-soft);padding-left:0;padding-top:10px}
+    .type-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .mock-wrap{grid-template-columns:1fr}
+    .mock-aside{border-top:1px solid var(--line-soft)}
+  }
+
+  @media (max-width:480px){
+    .tokens{grid-template-columns:1fr}
+    .type-grid{grid-template-columns:1fr}
+    .icon-line{gap:14px}
+    .closing{display:block}
+    .closing .right{text-align:left;margin-top:8px}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <defs>
+    <!-- ===== 方向 A3：心迹生长 ===== -->
+    <symbol id="a-session" viewBox="0 0 48 48">
+      <path d="M14 8 H36 Q42 8 42 15 V30 Q42 36 36 36 H30 C28 41 25 41 23 36 H12 Q6 36 6 30 V15 Q6 8 14 8 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M14 23 C17 17 21 17 23 22 C25 27 29 27 33 22"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <circle cx="34" cy="22" r="1.2" fill="var(--node-ink)" opacity=".4"/>
+    </symbol>
+
+    <symbol id="a-memory" viewBox="0 0 48 48">
+      <path d="M13 40 C18 33 24 26 30 20 C34 16 37 13 40 11"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.9"
+            vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <path d="M23.8 26.2 C23 24 22 22 21 21"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <path d="M27 23.5 C29 23.7 32 24.5 34 26"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <g transform="translate(40 11) rotate(45)">
+        <path d="M0 0 C-4.2 -4 -4.2 -8 0 -10 C4.2 -8 4.2 -4 0 0 Z"
+              fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.1"
+              vector-effect="non-scaling-stroke"/>
+        <path d="M0 -1 L0 -8" fill="none" stroke="var(--node-ink)" stroke-width=".9"
+              opacity=".3" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(21 21) rotate(30)">
+        <path d="M0 0 C-4.2 -4 -4.2 -8 0 -10 C4.2 -8 4.2 -4 0 0 Z"
+              fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.1"
+              vector-effect="non-scaling-stroke"/>
+        <path d="M0 -1 L0 -8" fill="none" stroke="var(--node-ink)" stroke-width=".9"
+              opacity=".3" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(34 26) rotate(65)">
+        <path d="M0 0 C-4.2 -4 -4.2 -8 0 -10 C4.2 -8 4.2 -4 0 0 Z"
+              fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.1"
+              vector-effect="non-scaling-stroke"/>
+        <path d="M0 -1 L0 -8" fill="none" stroke="var(--node-ink)" stroke-width=".9"
+              opacity=".3" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      </g>
+      <path d="M9 42 L14 41" fill="none" stroke="var(--node-ink)" stroke-width="1.2"
+            opacity=".35" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="a-document" viewBox="0 0 48 48">
+      <path d="M10 8 C16 7 24 6 30 5 C35 7 38 10 40 14 V37 L34 42 H10 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M30 5 C34 7 37 10 40 14 C37 14 34 14 31 15 C30 12 30 8 30 5 Z"
+            fill="var(--node-ink)" opacity=".10" stroke="var(--node-ink)"
+            stroke-width="1" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M17 24 C22 22 27 22 31 21 M17 31 C21 30 25 30 27 28"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="a-reason" viewBox="0 0 48 48">
+      <path d="M1 29 C4 28 7 26 11 24" fill="none" stroke="var(--node-ink)"
+            stroke-width="1.3" opacity=".38" stroke-dasharray="4 4"
+            vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <path d="M11 9 L45 24 L11 39 L20 26 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M20 26 L45 24" fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke"/>
+    </symbol>
+
+    <!-- ===== 方向 B：印章几何 ===== -->
+    <symbol id="b-session" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="18" fill="var(--node-soft)" stroke="var(--node-ink)"
+              stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+      <circle cx="24" cy="24" r="12" fill="none" stroke="var(--node-ink)"
+              stroke-width="1.1" opacity=".45" vector-effect="non-scaling-stroke"/>
+    </symbol>
+
+    <symbol id="b-memory" viewBox="0 0 48 48">
+      <path d="M24 4 L28 20 L44 24 L28 28 L24 44 L20 28 L4 24 L20 20 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <circle cx="24" cy="24" r="3" fill="var(--node-ink)" opacity=".55"/>
+    </symbol>
+
+    <symbol id="b-document" viewBox="0 0 48 48">
+      <path d="M10 6 H32 L40 14 V42 H10 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M32 6 V14 H40" fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".55" vector-effect="non-scaling-stroke"/>
+      <path d="M16 23 H34 M16 30 H28" fill="none" stroke="var(--node-ink)"
+            stroke-width="1.1" opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="b-reason" viewBox="0 0 48 48">
+      <path d="M24 4 L44 24 L24 44 L4 24 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M24 9 V39" fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke"/>
+      <path d="M24 15 L33 24 L24 33 L15 24 Z" fill="none" stroke="var(--node-ink)"
+            stroke-width=".9" opacity=".32" vector-effect="non-scaling-stroke"/>
+    </symbol>
+
+    <!-- ===== 方向 C：生长线条 ===== -->
+    <symbol id="c-session" viewBox="0 0 48 48">
+      <path d="M14 8 H34 Q42 8 42 16 V28 Q42 36 34 36 H14 Q6 36 6 28 V16 Q6 8 14 8 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M14 36 C12 41 8 44 5 43 C6 39 9 36 14 35 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.2"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M17 23 H31 M17 30 H25" fill="none" stroke="var(--node-ink)"
+            stroke-width="1.1" opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="c-memory" viewBox="0 0 48 48">
+      <path d="M24 5 C32 13 38 21 38 28 C38 36 31 42 24 42 C17 42 10 36 10 28 C10 21 16 13 24 5 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M24 12 C20 7 16 6 13 9 C17 13 20 14 24 13"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <path d="M24 12 C28 7 32 6 35 9 C31 13 28 14 24 13"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <path d="M24 18 V37" fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="c-document" viewBox="0 0 48 48">
+      <path d="M12 5 H31 L40 14 V43 H12 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M31 5 V14 H40" fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".55" vector-effect="non-scaling-stroke"/>
+      <path d="M18 23 H34 M18 30 H29" fill="none" stroke="var(--node-ink)"
+            stroke-width="1.1" opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+      <path d="M32 41 C36 36 40 36 42 38 C39 42 35 44 32 43"
+            fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".45" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="c-reason" viewBox="0 0 48 48">
+      <path d="M24 43 C18 36 12 32 9 22 C16 23 20 26 24 30 C28 26 32 23 39 22 C36 32 30 36 24 43 Z"
+            fill="var(--node-soft)" stroke="var(--node-ink)" stroke-width="1.5"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <path d="M24 30 V40" fill="none" stroke="var(--node-ink)" stroke-width="1.1"
+            opacity=".42" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="hero">
+    <div>
+      <p class="kicker">心智图谱 · 节点标识</p>
+      <h1>四个符号，<br>三种轮廓语言</h1>
+      <p class="lede">当前版本只改了填充和描边，12px 下仍读作圆 / 方 / 菱形。A 换成「心迹生长」：回声纸片、枝蔓、卷边、轨迹纸飞机；用弯曲的线把四者串起来；B/C 保留作对照。12px 是实尺，48px 是放大检视。</p>
+    </div>
+    <aside class="hero-note">
+      <b>方案 B</b><br>
+      Canvas 画网格与连线<br>
+      节点用内联 SVG 覆盖<br>
+      描边 1.5px 不随缩放变粗<br>
+      节点上限 ≤ 50
+    </aside>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <h2>先看色，再看形</h2>
+      <p>软底 + 同色描边保留；形状是这轮真正要换的东西。</p>
+    </div>
+    <div class="tokens">
+      <div class="token type-session">
+        <div class="token-top"><span class="swatch" style="background:var(--session-soft);color:var(--session-ink)"></span><b>会话</b></div>
+        <code>#c24a2e / #f6dcd2</code>
+      </div>
+      <div class="token type-memory">
+        <div class="token-top"><span class="swatch" style="background:var(--memory-soft);color:var(--memory-ink)"></span><b>记忆</b></div>
+        <code>#b08a4c / #f3e6cb</code>
+      </div>
+      <div class="token type-document">
+        <div class="token-top"><span class="swatch" style="background:var(--document-soft);color:var(--document-ink)"></span><b>文档</b></div>
+        <code>#4e6d6a / #dee8e1</code>
+      </div>
+      <div class="token type-reason">
+        <div class="token-top"><span class="swatch" style="background:var(--reason-soft);color:var(--reason-ink)"></span><b>推理</b></div>
+        <code>#7a5c8e / #e8e0ee</code>
+      </div>
+    </div>
+  </section>
+
+  <section class="directions">
+    <article class="direction recommended">
+      <div class="direction-head">
+        <div>
+          <span class="tag">方向 A3 · 推荐</span>
+          <h3>心迹生长</h3>
+          <p>会话留回声纸片，文档把折角改成卷边，记忆改成枝蔓锚点，推理加上飞行轨迹。四者共享一条“弯曲的线”，但各自弯曲方式不同。</p>
+        </div>
+        <div class="score">
+          <div><span>12px 辨识</span><b>强</b></div>
+          <div><span>24px 细节</span><b>中</b></div>
+          <div><span>与原版差异</span><b>大</b></div>
+          <div><span>工程成本</span><b>低</b></div>
+        </div>
+      </div>
+
+      <div class="type-grid">
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">会话</span><span class="type-code">session</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg>
+            <svg class="node-icon s24 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg>
+            <svg class="node-icon s12 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg>
+          </div>
+          <p class="type-note">回声纸片：底部软尾 + 一条回环痕迹；像一句话的回声，不是标准气泡。</p>
+        </div>
+
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">记忆</span><span class="type-code">memory</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-memory" xlink:href="#a-memory"/></svg>
+            <svg class="node-icon s24 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-memory" xlink:href="#a-memory"/></svg>
+            <svg class="node-icon s12 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-memory" xlink:href="#a-memory"/></svg>
+          </div>
+          <p class="type-note">枝蔓锚点：一根弯主枝 + 两处短分枝 + 三片小叶；分枝贴住主干，叶片一律朝主枝弯曲方向。</p>
+        </div>
+
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">文档</span><span class="type-code">document</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-document" xlink:href="#a-document"/></svg>
+            <svg class="node-icon s24 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-document" xlink:href="#a-document"/></svg>
+            <svg class="node-icon s12 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-document" xlink:href="#a-document"/></svg>
+          </div>
+          <p class="type-note">卷边纸片：微弧斜顶 + 卷起的折角 + 一条弯曲折痕；和会话共用“弯”的语言。</p>
+        </div>
+
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">推理</span><span class="type-code">reason</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-reason" xlink:href="#a-reason"/></svg>
+            <svg class="node-icon s24 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-reason" xlink:href="#a-reason"/></svg>
+            <svg class="node-icon s12 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-reason" xlink:href="#a-reason"/></svg>
+          </div>
+          <p class="type-note">纸飞机 + 左侧虚线尾迹：保留上一版剪影，尾巴只在左边露一点，不抢主体。</p>
+        </div>
+      </div>
+
+      <div class="legend-strip">
+        <div class="legend-item"><svg class="node-icon s12 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg><b>会话</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-memory" xlink:href="#a-memory"/></svg><b>记忆</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-document" xlink:href="#a-document"/></svg><b>文档</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-reason" xlink:href="#a-reason"/></svg><b>推理</b></div>
+        <div class="legend-item">12px 实尺，图例建议放大到 14px</div>
+      </div>
+
+      <div class="state-row">
+        <div class="state">
+          <svg class="node-icon s24 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg>
+          <span>默认</span>
+        </div>
+        <div class="state">
+          <span class="halo"><svg class="node-icon s24 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg></span>
+          <span>选中光晕</span>
+        </div>
+        <div class="state faded">
+          <svg class="node-icon s24 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg>
+          <span>淡出</span>
+        </div>
+      </div>
+      <p class="state-note">淡出态现在的 alpha 0.1 会让 12px 图标直接消失；建议提到 0.22 左右，保留“弱但还在”的层级。</p>
+    </article>
+
+    <article class="direction">
+      <div class="direction-head">
+        <div>
+          <span class="tag">方向 B · 备选</span>
+          <h3>印章几何</h3>
+          <p>保留双环、星芒、折角方、菱形中缝，把线宽和留白做得更干净。风险是：它离原版最近，容易再次被看成“没区别”。</p>
+        </div>
+        <div class="score">
+          <div><span>12px 辨识</span><b>中</b></div>
+          <div><span>24px 细节</span><b>中</b></div>
+          <div><span>与原版差异</span><b>小</b></div>
+          <div><span>工程成本</span><b>低</b></div>
+        </div>
+      </div>
+
+      <div class="type-grid">
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">会话</span><span class="type-code">session</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-session" xlink:href="#b-session"/></svg>
+            <svg class="node-icon s24 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-session" xlink:href="#b-session"/></svg>
+            <svg class="node-icon s12 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-session" xlink:href="#b-session"/></svg>
+          </div>
+          <p class="type-note">双环印章 + 内环；比原版更细、更规整，但轮廓仍是圆。</p>
+        </div>
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">记忆</span><span class="type-code">memory</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-memory" xlink:href="#b-memory"/></svg>
+            <svg class="node-icon s24 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-memory" xlink:href="#b-memory"/></svg>
+            <svg class="node-icon s12 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-memory" xlink:href="#b-memory"/></svg>
+          </div>
+          <p class="type-note">四角星芒 + 中心点；小尺寸比单圆更有记号感。</p>
+        </div>
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">文档</span><span class="type-code">document</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-document" xlink:href="#b-document"/></svg>
+            <svg class="node-icon s24 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-document" xlink:href="#b-document"/></svg>
+            <svg class="node-icon s12 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-document" xlink:href="#b-document"/></svg>
+          </div>
+          <p class="type-note">折角方页 + 两条线；和原版文档几乎同一轮廓。</p>
+        </div>
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">推理</span><span class="type-code">reason</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-reason" xlink:href="#b-reason"/></svg>
+            <svg class="node-icon s24 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-reason" xlink:href="#b-reason"/></svg>
+            <svg class="node-icon s12 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-reason" xlink:href="#b-reason"/></svg>
+          </div>
+          <p class="type-note">菱形 + 中缝 + 内菱形；最稳，也最像原版。</p>
+        </div>
+      </div>
+
+      <div class="legend-strip">
+        <div class="legend-item"><svg class="node-icon s12 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-session" xlink:href="#b-session"/></svg><b>会话</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-memory" xlink:href="#b-memory"/></svg><b>记忆</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-document" xlink:href="#b-document"/></svg><b>文档</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#b-reason" xlink:href="#b-reason"/></svg><b>推理</b></div>
+        <div class="legend-item">12px 实尺</div>
+      </div>
+    </article>
+
+    <article class="direction">
+      <div class="direction-head">
+        <div>
+          <span class="tag">方向 C · 实验</span>
+          <h3>生长线条</h3>
+          <p>把叶尾、嫩芽、抽枝放进剪影，气味更柔和。但 12px 下这些额外 1–2px 细节会先糊掉，精致感反而变成噪点。</p>
+        </div>
+        <div class="score">
+          <div><span>12px 辨识</span><b>弱</b></div>
+          <div><span>24px 细节</span><b>强</b></div>
+          <div><span>与原版差异</span><b>大</b></div>
+          <div><span>工程成本</span><b>中</b></div>
+        </div>
+      </div>
+
+      <div class="type-grid">
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">会话</span><span class="type-code">session</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-session" xlink:href="#c-session"/></svg>
+            <svg class="node-icon s24 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-session" xlink:href="#c-session"/></svg>
+            <svg class="node-icon s12 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-session" xlink:href="#c-session"/></svg>
+          </div>
+          <p class="type-note">气泡 + 叶形尾巴；尾巴在 12px 下容易缩成一个小黑点。</p>
+        </div>
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">记忆</span><span class="type-code">memory</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-memory" xlink:href="#c-memory"/></svg>
+            <svg class="node-icon s24 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-memory" xlink:href="#c-memory"/></svg>
+            <svg class="node-icon s12 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-memory" xlink:href="#c-memory"/></svg>
+          </div>
+          <p class="type-note">种子 + 双嫩芽；48px 好看，12px 会丢掉芽尖。</p>
+        </div>
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">文档</span><span class="type-code">document</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-document" xlink:href="#c-document"/></svg>
+            <svg class="node-icon s24 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-document" xlink:href="#c-document"/></svg>
+            <svg class="node-icon s12 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-document" xlink:href="#c-document"/></svg>
+          </div>
+          <p class="type-note">折角纸页 + 右下抽枝；信息量偏多，缩小时会脏。</p>
+        </div>
+        <div class="type-card">
+          <div class="type-head"><span class="type-name">推理</span><span class="type-code">reason</span></div>
+          <div class="icon-line">
+            <svg class="node-icon s48 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-reason" xlink:href="#c-reason"/></svg>
+            <svg class="node-icon s24 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-reason" xlink:href="#c-reason"/></svg>
+            <svg class="node-icon s12 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-reason" xlink:href="#c-reason"/></svg>
+          </div>
+          <p class="type-note">三叉生长剪影；像叶子多过像“推理”，语义会漂。</p>
+        </div>
+      </div>
+
+      <div class="legend-strip">
+        <div class="legend-item"><svg class="node-icon s12 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-session" xlink:href="#c-session"/></svg><b>会话</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-memory" xlink:href="#c-memory"/></svg><b>记忆</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-document" xlink:href="#c-document"/></svg><b>文档</b></div>
+        <div class="legend-item"><svg class="node-icon s12 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#c-reason" xlink:href="#c-reason"/></svg><b>推理</b></div>
+        <div class="legend-item">12px 实尺</div>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>放进图谱里看密度</h2>
+      <p>方向 A 的 30px 节点；连线仍用中性虚线，不让颜色抢形状。</p>
+    </div>
+    <div class="mock-wrap">
+      <div class="mock">
+        <svg class="mock-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="50" y1="50" x2="22" y2="24" stroke="#2a231c" stroke-width="1" stroke-dasharray="6 5" opacity=".22" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="50" x2="78" y2="26" stroke="#2a231c" stroke-width="1" stroke-dasharray="6 5" opacity=".22" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="50" x2="76" y2="74" stroke="#2a231c" stroke-width="1" stroke-dasharray="6 5" opacity=".22" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="50" x2="22" y2="74" stroke="#2a231c" stroke-width="1" stroke-dasharray="2 4" opacity=".22" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="50" x2="50" y2="88" stroke="#2a231c" stroke-width="1" stroke-dasharray="4 4" opacity=".22" vector-effect="non-scaling-stroke"/>
+        </svg>
+
+        <div class="mock-node" style="left:22%;top:24%">
+          <svg class="node-icon s30 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-document" xlink:href="#a-document"/></svg>
+          <span class="mock-label">文档 · 3</span>
+        </div>
+        <div class="mock-node" style="left:78%;top:26%">
+          <svg class="node-icon s30 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-document" xlink:href="#a-document"/></svg>
+          <span class="mock-label">文档 · 4</span>
+        </div>
+        <div class="mock-node" style="left:76%;top:74%">
+          <svg class="node-icon s30 type-document" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-document" xlink:href="#a-document"/></svg>
+          <span class="mock-label">文档 · 5</span>
+        </div>
+        <div class="mock-node" style="left:22%;top:74%">
+          <svg class="node-icon s30 type-memory" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-memory" xlink:href="#a-memory"/></svg>
+          <span class="mock-label">记忆</span>
+        </div>
+        <div class="mock-node" style="left:50%;top:88%">
+          <svg class="node-icon s30 type-reason" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-reason" xlink:href="#a-reason"/></svg>
+          <span class="mock-label">推理</span>
+        </div>
+        <div class="mock-node" style="left:50%;top:50%">
+          <svg class="node-icon s48 type-session" viewBox="0 0 48 48" aria-hidden="true"><use href="#a-session" xlink:href="#a-session"/></svg>
+          <span class="mock-label">当前会话</span>
+        </div>
+      </div>
+
+      <aside class="mock-aside">
+        <div>
+          <h4>密度检查</h4>
+          <p>30px 下四种剪影已经能分开；把标签缩到 10px，先看形，不靠文字。</p>
+        </div>
+        <ul>
+          <li>会话最大，回声软尾先抓住眼。</li>
+          <li>文档卷边在 30px 仍清楚；到 12px 只剩一个弯钩。</li>
+          <li>记忆枝蔓和文档卷边不会混：一个分叉，一个弯钩。</li>
+          <li>纸飞机左侧一条短虚线，像刚飞过来。</li>
+        </ul>
+        <p>如果 12px 图例里文档和记忆仍然混，优先加大文档的折角，不要再加内部线。</p>
+      </aside>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>怎么选</h2>
+      <p>不看“哪个更好看”，看小尺寸是否还能分辨，以及是否还会被说“没区别”。</p>
+    </div>
+    <table class="decision">
+      <thead>
+        <tr><th>方向</th><th>一句话</th><th>12px 辨识</th><th>24px 细节</th><th>与原版差异</th><th>结论</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>A3 心迹生长</b></td>
+          <td>回声 / 枝蔓 / 卷边 / 轨迹纸飞机</td>
+          <td class="good">强</td>
+          <td>中</td>
+          <td class="good">大</td>
+          <td class="good">推荐做 A3</td>
+        </tr>
+        <tr>
+          <td><b>B 印章几何</b></td>
+          <td>双环 / 星芒 / 折方 / 菱形</td>
+          <td>中</td>
+          <td>中</td>
+          <td class="warn">小</td>
+          <td>只做备选</td>
+        </tr>
+        <tr>
+          <td><b>C 生长线条</b></td>
+          <td>叶尾 / 嫩芽 / 抽枝</td>
+          <td class="warn">弱</td>
+          <td class="good">强</td>
+          <td>大</td>
+          <td>不适合 12px 主图</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="closing">
+    <div>
+      <b>落地方式</b><br>
+      选定方向后，把四个 symbol 搬进 `GraphCanvas.vue` 的节点覆盖层；Canvas 只保留网格、连线和标签。
+    </div>
+    <div class="right">
+      <b>验收尺</b><br>
+      遮住颜色，12px 还能分清四类；24px 放大不出现多余噪点；选中光晕不盖住轮廓；淡出态仍能看见“形”。
+    </div>
+  </footer>
+</div>
+</body>
+</html>

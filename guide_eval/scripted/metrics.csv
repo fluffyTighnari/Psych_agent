@@ -1,0 +1,8 @@
+﻿model,first_contradiction_turn,named_before_turn7,component_coverage,question_rate,questions_per_turn,advice_turn_rate,premature_solution,directive_per_1k_chars,avg_chars,ends_with_plan,ends_with_question,empathy_rate,error
+deepseek-v4.1-flash,3,True,0.25,0.875,4.5,1.0,True,0.29,1306.0,True,True,0.5,
+glm-5.3-flash,3,True,0.25,1.0,5.0,0.625,False,0.38,990.5,True,True,0.25,
+hy3,4,True,0.5,0.875,2.38,0.875,True,0.0,1201.6,True,False,0.25,
+kimi-k3,4,True,0.5,0.875,2.75,1.0,True,0.74,845.6,True,True,0.375,
+longcat-2.0,4,True,0.75,1.0,5.12,1.0,True,0.66,1315.9,True,True,0.375,
+mimo-v2.6-flash,5,True,0.5,1.0,2.38,0.125,False,0.0,363.8,True,True,0.25,
+qwen3.8-flash,4,True,0.25,1.0,7.88,0.75,True,0.44,2291.8,True,True,0.25,

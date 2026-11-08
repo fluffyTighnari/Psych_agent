@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会话节点 · 单侧涡环</title>
+<style>
+  :root {
+    --paper: #f4efe4;
+    --surface: #faf6ec;
+    --raised: #fdfbf5;
+    --ink: #2b2724;
+    --ink-2: #6f665d;
+    --ink-3: #a29788;
+    --line: #d9cdb6;
+    --line-soft: #e6dcc8;
+    --session: #c24a2e;
+    --session-soft: #f6dcd2;
+    --serif: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+    --sans: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    --mono: "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(194, 74, 46, .05), transparent 34%),
+      radial-gradient(circle at 88% 92%, rgba(78, 109, 106, .04), transparent 38%),
+      var(--paper);
+    font-family: var(--sans);
+  }
+
+  .page {
+    width: min(1120px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: 46px 0 64px;
+  }
+
+  .kicker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+  }
+
+  .kicker::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--session);
+    opacity: .55;
+  }
+
+  h1 {
+    margin: 14px 0 10px;
+    font-family: var(--serif);
+    font-size: clamp(29px, 4vw, 45px);
+    font-weight: 600;
+    letter-spacing: -.02em;
+  }
+
+  .lede {
+    max-width: 650px;
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.9;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: minmax(300px, 1.15fr) minmax(280px, .85fr);
+    gap: 24px;
+    margin-top: 34px;
+  }
+
+  .card {
+    background: rgba(253, 251, 245, .82);
+    border: 1px solid var(--line-soft);
+    border-radius: 18px;
+    box-shadow: 0 18px 48px rgba(61, 45, 29, .05);
+  }
+
+  .hero {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 444px;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(217, 205, 182, .28) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(217, 205, 182, .28) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(circle at center, black 24%, transparent 76%);
+  }
+
+  .hero-glyph {
+    position: relative;
+    width: 252px;
+    height: 252px;
+    color: var(--session);
+  }
+
+  .hero-caption {
+    position: absolute;
+    left: 28px;
+    bottom: 22px;
+    display: flex;
+    gap: 9px;
+    align-items: baseline;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .06em;
+  }
+
+  .hero-caption strong {
+    color: var(--session);
+    font-weight: 500;
+  }
+
+  .notes {
+    padding: 26px 26px 22px;
+  }
+
+  .notes-title {
+    margin: 0 0 16px;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+  }
+
+  .note {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 12px;
+    padding: 13px 0;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .note:first-of-type { border-top: 0; padding-top: 0; }
+
+  .mark {
+    width: 8px;
+    height: 8px;
+    margin-top: 7px;
+    border-radius: 50%;
+    background: var(--session);
+    opacity: .82;
+  }
+
+  .note h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .note p {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    line-height: 1.75;
+  }
+
+  .section {
+    margin-top: 26px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .section-head h2 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .section-head span {
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+
+  .sizes {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr .65fr .55fr;
+    gap: 12px;
+  }
+
+  .size-cell {
+    min-height: 174px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    background: rgba(253, 251, 245, .56);
+  }
+
+  .size-cell .glyph { color: var(--session); }
+
+  .size-cell footer {
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .08em;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 26px;
+  }
+
+  .compare, .legend-card {
+    padding: 24px;
+  }
+
+  .compare h2, .legend-card h2 {
+    margin: 0 0 20px;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .compare-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 12px 14px;
+    border-radius: 12px;
+    background: rgba(244, 239, 228, .65);
+  }
+
+  .compare-item .glyph { color: var(--session); }
+
+  .compare-item span {
+    color: var(--ink-2);
+    font-size: 11px;
+  }
+
+  .legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 11px;
+    border: 1px solid var(--line-soft);
+    border-radius: 999px;
+    background: var(--raised);
+    color: var(--ink-2);
+    font-size: 11px;
+  }
+
+  .pill .glyph { color: var(--session); }
+
+  .pill.is-on {
+    border-color: rgba(194, 74, 46, .38);
+    background: #fff9f4;
+    color: var(--session);
+  }
+
+  .dark {
+    margin-top: 26px;
+    padding: 24px;
+    border-radius: 16px;
+    background: #1c1917;
+    border: 1px solid #332b25;
+  }
+
+  .dark h2 {
+    margin: 0 0 18px;
+    color: #ebe3d5;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .dark-row {
+    display: flex;
+    align-items: center;
+    gap: 34px;
+    flex-wrap: wrap;
+  }
+
+  .dark-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #e0705a;
+  }
+
+  .dark-item span {
+    color: #9a9086;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .08em;
+  }
+
+  /* ---------- glyph ---------- */
+  .glyph {
+    display: block;
+    overflow: visible;
+    --ring-w: 1.7px;
+    --trace-w: 1.15px;
+  }
+
+  .glyph .ring {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: var(--ring-w);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .glyph .trace {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: var(--trace-w);
+    stroke-linecap: round;
+    stroke-dasharray: 2.2 3.6;
+    opacity: .42;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .glyph .dot {
+    fill: currentColor;
+    opacity: .7;
+  }
+
+  .glyph--xl { --ring-w: 3.1px; --trace-w: 1.7px; }
+  .glyph--lg { --ring-w: 2.0px; --trace-w: 1.25px; }
+  .glyph--md { --ring-w: 1.7px; --trace-w: 1.1px; }
+  .glyph--sm { --ring-w: 1.45px; --trace-w: .95px; }
+  .glyph--xs { --ring-w: 1.35px; --trace-w: .9px; }
+
+  .glyph--xl .dot { r: 1.7; }
+  .glyph--lg .dot { r: 1.65; }
+  .glyph--md .dot { r: 1.6; }
+  .glyph--sm .dot { r: 1.55; }
+  .glyph--xs .dot { r: 1.65; }
+
+  @media (max-width: 900px) {
+    .board, .row { grid-template-columns: 1fr; }
+    .sizes { grid-template-columns: 1fr 1fr; }
+    .hero { min-height: 360px; }
+    .hero-glyph { width: 210px; height: 210px; }
+  }
+</style>
+</head>
+<body>
+<!-- 会话字形：单侧涡环 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="session-vortex" viewBox="0 0 48 48">
+      <!-- 连续环线：左上方宽、右下方收，上右一小段向内回卷 -->
+      <path style="fill:none;stroke:currentColor;stroke-width:var(--ring-w);stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke" d="M27.4 10.0
+        C35.0 9.4 40.8 13.8 41.4 20.8
+        C42.0 28.0 36.2 34.6 27.8 36.4
+        C19.4 38.2 10.8 33.2 9.4 25.8
+        C8.0 18.8 13.0 12.0 20.6 10.4
+        C23.6 9.6 26.2 9.6 27.4 10.0
+        C31.0 11.0 34.4 13.6 35.0 17.2
+        C35.6 20.8 33.2 23.2 30.0 23.4
+        C27.6 23.6 26.0 22.0 26.2 20.0" />
+      <!-- 沿内壁的断续踪迹，偏左，避开底部对称的“笑脸”读法 -->
+      <path style="fill:none;stroke:currentColor;stroke-width:var(--trace-w);stroke-linecap:round;stroke-dasharray:2.2 3.6;opacity:.42;vector-effect:non-scaling-stroke" d="M14.4 19.2
+        C13.6 23.6 15.4 28.4 19.2 31.2" />
+      <circle style="fill:currentColor;opacity:.7" cx="14.8" cy="20.6" r="1.7" />
+      <circle style="fill:currentColor;opacity:.7" cx="19.2" cy="30.8" r="1.7" />
+    </symbol>
+    <!-- 旧气泡，对照用 -->
+    <symbol id="session-bubble" viewBox="0 0 48 48">
+      <path style="fill:none;stroke:currentColor;stroke-width:var(--ring-w);stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke" d="M14 8 H36 Q42 8 42 15 V30 Q42 36 36 36 H30 C28 41 25 41 23 36 H12 Q6 36 6 30 V15 Q6 8 14 8 Z" />
+      <path style="fill:none;stroke:currentColor;stroke-width:var(--trace-w);stroke-linecap:round;stroke-dasharray:2.2 3.6;opacity:.42;vector-effect:non-scaling-stroke" d="M14 23 C17 17 21 17 23 22 C25 27 29 27 33 22" />
+      <circle style="fill:currentColor;opacity:.7" cx="34" cy="22" r="1.2" />
+    </symbol>
+  </defs>
+</svg>
+
+<main class="page">
+  <div class="kicker">GRAPH NODE / SESSION</div>
+  <h1>单侧涡环</h1>
+  <p class="lede">
+    把「会话」从向外开口的聊天气泡，换成向内回旋的浅涡。环形主体稳定，单侧收进去的尾巴制造回旋；
+    内壁留一条断续踪迹和两个节点，表示两轮表达，而不是多人对话。
+  </p>
+
+  <div class="board">
+    <section class="card hero" aria-label="会话涡环主形">
+      <svg class="hero-glyph glyph glyph--xl" viewBox="0 0 48 48" role="img" aria-label="单侧涡环会话图标">
+        <use href="#session-vortex" xlink:href="#session-vortex" />
+      </svg>
+      <div class="hero-caption"><strong>48 × 48</strong><span>主形 / 线宽演示</span></div>
+    </section>
+
+    <section class="card notes" aria-label="设计说明">
+      <p class="notes-title">DESIGN NOTES</p>
+      <div class="note">
+        <i class="mark"></i>
+        <div>
+          <h3>主体不是圆</h3>
+          <p>横向略宽、左上方更饱满，右下方收紧；环线在上右一段向圆心回卷，形成单侧涡口。</p>
+        </div>
+      </div>
+      <div class="note">
+        <i class="mark"></i>
+        <div>
+          <h3>向内，而不是向外</h3>
+          <p>普通气泡的开口朝外；这里的尾巴朝内，第一眼是「自我回旋」，不是聊天框。</p>
+        </div>
+      </div>
+      <div class="note">
+        <i class="mark"></i>
+        <div>
+          <h3>两轮表达</h3>
+          <p>内壁的断续刻线沿左侧内壁走，两个小节点一高一低落在线上，不形成对称表情。</p>
+        </div>
+      </div>
+      <div class="note">
+        <i class="mark"></i>
+        <div>
+          <h3>柔化</h3>
+          <p>全圆头端点、无尖角；环线与踪迹保持低对比，只让轮廓和回旋方向承担识别。</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>尺寸可辨性</h2>
+      <span>12 / 24 / 48 / 96 px</span>
+    </div>
+    <div class="sizes">
+      <div class="size-cell">
+        <svg class="glyph glyph--xl" width="112" height="112" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+        <footer>96 PX</footer>
+      </div>
+      <div class="size-cell">
+        <svg class="glyph glyph--lg" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+        <footer>48 PX</footer>
+      </div>
+      <div class="size-cell">
+        <svg class="glyph glyph--md" width="24" height="24" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+        <footer>24 PX</footer>
+      </div>
+      <div class="size-cell">
+        <svg class="glyph glyph--xs" width="12" height="12" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+        <footer>12 PX</footer>
+      </div>
+    </div>
+  </section>
+
+  <div class="row">
+    <section class="card compare">
+      <h2>与旧气泡的差异</h2>
+      <div class="compare-row">
+        <div class="compare-item">
+          <svg class="glyph glyph--lg" width="64" height="64" viewBox="0 0 48 48" aria-hidden="true" style="color:#a29788"><use href="#session-bubble" xlink:href="#session-bubble" /></svg>
+          <span>旧：向外开口的气泡</span>
+        </div>
+        <div class="compare-item">
+          <svg class="glyph glyph--lg" width="64" height="64" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+          <span>新：向内回旋的涡环</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card legend-card">
+      <h2>图例中的位置</h2>
+      <div class="legend">
+        <span class="pill is-on">
+          <svg class="glyph glyph--sm" width="14" height="14" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+          会话
+        </span>
+        <span class="pill" style="color:#b08a4c">记忆</span>
+        <span class="pill" style="color:#4e6d6a">文档</span>
+        <span class="pill" style="color:#7a5c8e">推理</span>
+      </div>
+      <p style="margin:18px 0 0;color:var(--ink-3);font-size:11.5px;line-height:1.8;">
+        14px 是图例实际尺寸。主环仍保持方向；内壁踪迹与节点作为二级细节，不参与第一眼识别。
+      </p>
+    </section>
+  </div>
+
+  <section class="dark">
+    <h2>暗色主题</h2>
+    <div class="dark-row">
+      <div class="dark-item">
+        <svg class="glyph glyph--lg" width="52" height="52" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+        <span>52 PX / #E0705A</span>
+      </div>
+      <div class="dark-item">
+        <svg class="glyph glyph--md" width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+        <span>28 PX</span>
+      </div>
+      <div class="dark-item">
+        <svg class="glyph glyph--xs" width="14" height="14" viewBox="0 0 48 48" aria-hidden="true"><use href="#session-vortex" xlink:href="#session-vortex" /></svg>
+        <span>14 PX</span>
+      </div>
+    </div>
+  </section>
+
+  <p style="margin:26px 0 0;color:var(--ink-3);font-size:11px;line-height:1.9;">
+    这版只替换会话字形，其他记忆 / 文档 / 推理保持 A3 定稿。主形为单条连续环线，回卷尾巴在内侧收口；
+    内部踪迹是独立虚线层，便于后续 hover / 选中时单独抬亮。
+  </p>
+</main>
+</body>
+</html>

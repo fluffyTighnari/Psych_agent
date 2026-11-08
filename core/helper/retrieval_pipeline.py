@@ -7,34 +7,34 @@
   序列化的 ``{"stages", "final", "logs", ...}``。
 - ``run_pipeline()`` 模块级便捷函数，内部用 ``get_retrieval_components()`` 组装。
 
-实现说明 / 取舍：
+实现说明 / 取舍（v2 优化版，调优依据见 docs/rag_optimization_report.md）：
 
-1. **复用生产算法**（``core/helper/retriever.py``，未修改）：dense 检索文本 =
-   ``optimized["search_query"] + query``；BM25 token = ``list(jieba.cut(query)) + match_topics +
-   keywords``；RRF ``1 / (pos + k)``（pos 从 0 开始，与生产一致）；rerank 调用
-   ``reranker.rerank_documents(query, docs, final_top_k, score_threshold)``。
-2. **dense 分数 = Chroma 的 L2 距离**（越小越相似），故 dense 阶段 score 比其他阶段小；
+1. **dense 检索文本 = 多向量加权平均**：把「原始提问」「LLM 改写问句」分别编码后按
+   ``DENSE_QUERY_WEIGHTS``（默认 query:1.0 / search_query:0.5）加权平均并重新归一化。
+   不再把两段文本直接字符串拼接（旧实现 ``search_query + query`` 无分隔符，且无法调权重）。
+   可选第 3 条链路：HyDE 假设文档（``use_hyde=True``）。
+2. **BM25 token = 加权词项序列**：原话与 ``distinctive_terms`` 高权重、topics/keywords 低权重
+   （``BM25_QUERY_WEIGHTS``），用词项重复次数表达权重（BM25 对 query 词频是线性的）。
+   这直接对症「扩展词稀释原始意图 / 让候选文档获得虚假匹配优势」。
+3. **BM25 索引本身是富索引**：索引文档 = 标题 + 摘要 + 关键词 + 主题 + 周记三段 + 正文
+   （见 ``core/helper/BM25.py`` 与 ``core/helper/retrieval_config.py``），使词频差异与长度
+   归一化都作用在真实文本上。**改索引规格后必须重建 ``store/bm25_store/bm25``**。
+4. **RRF 为加权倒数排名融合**：``w / (pos + k)``，k 默认 3（远小于旧值 60）。k 太大时
+   ``1/(pos+k)`` 几乎与排名无关，融合退化为「无序并集」。权重与 k 的消融见报告。
+5. **重排候选池（rerank_pool）**：融合排序后先截断到前 N 再送 cross-encoder，默认 10。
+   这样 RRF 的排序在「开启重排」时依然起作用（旧实现重排会丢弃 RRF 顺序，RRF 只贡献并集）。
+6. **dense 分数 = Chroma 的 L2 距离**（越小越相似），故 dense 阶段 score 比其他阶段小；
    顺序即 Chroma 返回顺序（已按距离升序），rank 从 1 开始。
-3. **BM25 分数**：只读调用 ``bm25.bm25.get_scores(tokens)`` 取原始 BM25 分数（不修改
-   ``core/helper/BM25.py``），按分数降序、过滤 0 分、取 top ``raw_top_k``，与 ``BM25TagIndexer
-   .search()`` 语义一致；若索引对象不可用/无 ``get_scores``（异常回退路径），则退回
-   ``bm25.search(tokens, raw_top_k)``，此时 score 字段放「排名倒数」``1 / rank`` 作为占位分数。
-4. **rerank 真实分数**：``rerank_documents`` 只返回 Document 不返回分数，因此额外用
+7. **rerank 真实分数**：``rerank_documents`` 只返回 Document 不返回分数，因此额外用
    ``pipeline.reranker.model.predict(pairs)`` 复算一遍，pairs 构造规则与 reranker 内部
-   ``build_input_text`` 完全一致（summary + weekly 的 problem/solution 或 daily 的 content[:800]），
-   按同一阈值（score_threshold 为 None 时用 ``reranker.score_threshold``，默认 0.08）过滤、
-   同序排序。最终结果与 ``rerank_documents`` 的返回对齐（不一致时以显式阈值下的自身计算为准，
-   并写入一条日志）。
-5. **结果里的 ``doc``**：填充契约 §2.4 的 DOC_VIEW 形状 dict（JSON 安全，``json.dumps`` 不会报错；
-   ``api/retrieval_debug.py`` 的 ``doc_to_view`` 对 dict 同样幂等可用）。取不到时填 ``None``。
-6. **阶段语义**（契约 §2.3）：rrf / rerank 需要候选来源，若 dense 与 bm25 都未勾选（只勾 rrf 或
-   只勾 rerank），默认启用双路召回；dense 与 bm25 同时启用时（即使没勾 rrf）也必须融合，并出现
-   rrf 阶段。全不勾 / 空 query → ``ValueError("至少选择一种检索方式")``。
-7. **Document 加载兜底**：主路径严格用 ``knowledge_loader.load_knowledge(ids)``；但本仓库
-   ``config/id_map.json`` 存的是其他机器（Windows）的绝对路径，当前 macOS 检出下该方法会静默返回
-   空列表（生产 ``Retriever.retrieve`` 也受此影响）。为保证调试视图可用，若某 id 未解析出
-   Document，则回退到契约 §1 列出的 ``KNOWLEDGE_CACHE``（同一批 JSON、同一 doc_id 索引）补齐，
-   两者都取不到才计入 missing 并写日志。已向 Lead 报备。
+   ``build_input_text`` 完全一致（两者都走 ``core/helper/retrieval_text.rerank_input_text``）。
+8. **结果里的 ``doc``**：填充契约 §2.4 的 DOC_VIEW 形状 dict（JSON 安全）。
+9. **阶段语义**（契约 §2.3）：rrf / rerank 需要候选来源，若 dense 与 bm25 都未勾选（只勾 rrf 或
+   只勾 rerank），默认启用双路召回；dense 与 bm25 同时启用时（即使没勾 rrf）也必须融合。
+   全不勾 / 空 query → ``ValueError("至少选择一种检索方式")``。
+10. **Document 加载兜底**：主路径严格用 ``knowledge_loader.load_knowledge(ids)``；若某 id 未解析出
+    Document（典型场景：``config/id_map.json`` 里存的是其他机器的绝对路径），则回退到
+    §1 列出的 ``KNOWLEDGE_CACHE`` 补齐，两者都取不到才计入 missing 并写日志。
 """
 
 from __future__ import annotations
@@ -43,9 +43,13 @@ import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-import jieba
-
 from config.path_config import BM25_PATH, COLLECTION_NAME, VECTOR_DB_DIR
+from core.helper import retrieval_config as RC
+from core.helper.retrieval_text import (
+    bm25_query_tokens,
+    dense_query_texts,
+    rerank_input_text,
+)
 from core.helper.trace_tracker import TraceTracker
 
 # 阶段 → 中文标签（契约 §2.2 / 前端展示）
@@ -53,15 +57,17 @@ PIPELINE_STAGE_LABELS: Dict[str, str] = {
     "optimize_prompt": "Query 优化",
     "dense": "向量召回(Dense)",
     "bm25": "BM25 关键词召回",
+    "hyde": "HyDE 假设文档召回",
     "rrf": "RRF 融合",
     "rerank": "Cross-Encoder 重排",
 }
 
-# 阶段固定顺序（契约 §2.2）
+# 阶段固定顺序（契约 §2.2；hyde 为 v2 新增的可选链路，排在 rrf 之前）
 PIPELINE_STAGE_ORDER: Tuple[str, ...] = (
     "optimize_prompt",
     "dense",
     "bm25",
+    "hyde",
     "rrf",
     "rerank",
 )
@@ -86,6 +92,13 @@ def get_retrieval_components() -> dict:
     return _COMPONENTS
 
 
+def invalidate_retrieval_components() -> None:
+    """清空进程级组件单例（换模型 / 换 embedding 后调用）；下次 get_retrieval_components() 重新装载。"""
+    global _COMPONENTS
+    with _COMPONENTS_LOCK:
+        _COMPONENTS = None
+
+
 def _build_retrieval_components() -> Dict[str, Any]:
     """真正构造组件；所有重依赖都在函数内 import，避免 import 期加载模型/建向量库连接。"""
     from config.model_config import EMBEDDING_MODEL, GLOBAL_MODEL, RERANKING_MODEL
@@ -99,11 +112,10 @@ def _build_retrieval_components() -> Dict[str, Any]:
 
     # 先构造轻量组件，再装载重模型；任一环节失败都不会污染单例
     vector_db = VectorDB(VECTOR_DB_DIR, COLLECTION_NAME)
+    # 纯检索场景 documents=[]：直接加载本地已有索引（索引内的 k1/b 已被烘焙，读取时同步）
     bm25 = BM25TagIndexer(
         documents=[],
         bm25_path=BM25_PATH,
-        topic_weight=3,
-        keyword_weight=1,
     )
     prompt_optimizer = PromptOptimizer(LLM(GLOBAL_MODEL.small))
     knowledge_loader = KnowledgeLoader()
@@ -160,6 +172,23 @@ def _as_int(value: Any, default: int = 0) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_float_array(vec: Any):
+    """把 embedding 输出统一转成 float32 numpy 数组（支持 list / np.ndarray / torch.Tensor）。"""
+    import numpy as np
+
+    if hasattr(vec, "detach"):  # torch.Tensor
+        vec = vec.detach().cpu().numpy()
+    arr = np.asarray(vec, dtype="float32").reshape(-1)
+    return arr
 
 
 def _doc_view(doc: Any) -> Optional[dict]:
@@ -230,10 +259,16 @@ class RetrievalPipeline:
 
     # ---------- 输入准备 / 各阶段实现 ----------
 
-    def _optimize_query(self, query: str, trace: Optional[TraceTracker]) -> Tuple[dict, float]:
+    def _optimize_query(self, query: str, trace: Optional[TraceTracker],
+                        want_hyde: bool = False) -> Tuple[dict, float]:
         """阶段 1：Query 优化（任一阶段启用即执行），返回 (info, latency_ms)。"""
         started = time.perf_counter()
-        raw = self.prompt_optimizer.optimize_prompt(query)
+        # want_hyde 用于切换提示词：默认 lite（不生成 HyDE 长文本），启用 HyDE 链路时才要完整版。
+        # 用 try/except 兼容外部注入的自定义 optimizer（如验证脚本的 StubOptimizer，只接受 query）。
+        try:
+            raw = self.prompt_optimizer.optimize_prompt(query, want_hyde=want_hyde)
+        except TypeError:
+            raw = self.prompt_optimizer.optimize_prompt(query)
         latency_ms = (time.perf_counter() - started) * 1000.0
 
         data = dict(raw) if isinstance(raw, dict) else {}
@@ -241,6 +276,10 @@ class RetrievalPipeline:
             "search_query": _as_str(data.get("search_query") or query),
             "match_topics": _as_str_list(data.get("match_topics")),
             "keywords": _as_str_list(data.get("keywords")),
+            # v2 新增：高区分度词 + 两篇 HyDE 假设文档（经历式 / 原则式）
+            "distinctive_terms": _as_str_list(data.get("distinctive_terms")),
+            "hyde_experience": _as_str(data.get("hyde_experience")),
+            "hyde_principle": _as_str(data.get("hyde_principle")),
         }
         _add_trace(
             trace,
@@ -251,16 +290,43 @@ class RetrievalPipeline:
                 "search_query": info["search_query"][:200],
                 "match_topics": info["match_topics"],
                 "keywords": info["keywords"],
+                "distinctive_terms": info["distinctive_terms"],
+                "hyde_chars": [len(info["hyde_experience"]), len(info["hyde_principle"])],
                 "latency_ms": _round_ms(latency_ms),
             },
         )
         return info, latency_ms
 
-    def _run_dense(self, search_text: str, raw_top_k: int) -> Tuple[List[str], List[float], float]:
-        """dense 召回：编码 ``search_query + query`` → Chroma 查询，score 为 L2 距离（越小越好）。"""
+    def _run_dense(
+        self,
+        query: str,
+        info: dict,
+        raw_top_k: int,
+        *,
+        use_hyde: bool = RC.DEFAULT_USE_HYDE,
+        query_weights: Optional[dict] = None,
+    ) -> Tuple[List[str], List[float], float, List[dict]]:
+        """dense 召回：多向量加权平均编码 → Chroma 查询，score 为 L2 距离（越小越好）。
+
+        返回 (ids, distances, latency_ms, 参与编码的文本明细)。
+        """
         started = time.perf_counter()
-        embedding = self.embedding_model.encode(search_text)
-        result = self.vector_db.query(embedding, raw_top_k)
+        parts = dense_query_texts(query, info, use_hyde=use_hyde, weights=query_weights)
+        if not parts:
+            parts = [(query, 1.0)]
+
+        acc = None
+        used: List[dict] = []
+        for text, weight in parts:
+            vec = self.embedding_model.encode(text)
+            vec = _as_float_array(vec) * float(weight)
+            acc = vec if acc is None else acc + vec
+            used.append({"text": text[:80], "weight": float(weight)})
+
+        norm = float((acc * acc).sum()) ** 0.5
+        if norm > 0:
+            acc = acc / norm
+        result = self.vector_db.query(acc, raw_top_k)
 
         ids = list((result.get("ids") or [[]])[0] or [])
         distances = list((result.get("distances") or [[]])[0] or [])
@@ -269,12 +335,22 @@ class RetrievalPipeline:
             # 理论上不会发生；兜底避免 rank 与 score 长度错位
             scores.extend([0.0] * (len(ids) - len(scores)))
         latency_ms = (time.perf_counter() - started) * 1000.0
-        return [str(i) for i in ids], scores, latency_ms
+        return [str(i) for i in ids], scores, latency_ms, used
 
-    def _run_bm25(self, query: str, info: dict, raw_top_k: int) -> Tuple[List[str], List[float], float, str]:
-        """BM25 召回：token = jieba(query) + match_topics + keywords，返回 (ids, scores, ms, score_mode)。"""
+    def _run_bm25(
+        self,
+        query: str,
+        info: dict,
+        raw_top_k: int,
+        *,
+        query_weights: Optional[dict] = None,
+    ) -> Tuple[List[str], List[float], float, str, List[str]]:
+        """BM25 召回：加权词项序列 → 分数降序取 top raw_top_k。
+
+        返回 (ids, scores, ms, score_mode, tokens)。
+        """
         started = time.perf_counter()
-        tokens = list(jieba.cut(query)) + list(info["match_topics"]) + list(info["keywords"])
+        tokens = bm25_query_tokens(query, info, query_weights)
 
         bm25_model = getattr(self.bm25, "bm25", None)
         doc_id_list = list(getattr(self.bm25, "doc_id_list", None) or [])
@@ -299,20 +375,29 @@ class RetrievalPipeline:
             score_mode = "reciprocal_rank"
 
         latency_ms = (time.perf_counter() - started) * 1000.0
-        return ids, scores, latency_ms, score_mode
+        return ids, scores, latency_ms, score_mode, tokens
 
     def _rrf_fuse(
         self,
         dense_ids: List[str],
         bm25_ids: List[str],
         rrf_k: int,
+        w_dense: float = RC.DEFAULT_W_DENSE,
+        w_bm25: float = RC.DEFAULT_W_BM25,
+        hyde_ids: Optional[List[str]] = None,
+        w_hyde: float = 0.0,
     ) -> Tuple[List[str], List[float]]:
-        """倒数排名融合，与生产 ``Retriever.rrf_fuse`` 完全一致（pos 从 0 开始）。"""
+        """加权倒数排名融合：``score += w / (pos + rrf_k)``（pos 从 0 开始）。
+
+        rrf_k 是「排名折扣强度」：k 越小，排名靠前的候选优势越明显；
+        k 很大（如旧默认 60）时 1/(pos+k) 几乎与 pos 无关，融合退化为无序并集。
+        """
         rank_score: Dict[str, float] = {}
-        for pos, doc_id in enumerate(dense_ids):
-            rank_score[doc_id] = rank_score.get(doc_id, 0.0) + 1.0 / (pos + rrf_k)
-        for pos, doc_id in enumerate(bm25_ids):
-            rank_score[doc_id] = rank_score.get(doc_id, 0.0) + 1.0 / (pos + rrf_k)
+        for lst, weight in ((dense_ids, w_dense), (bm25_ids, w_bm25), (hyde_ids or [], w_hyde)):
+            if not weight:
+                continue
+            for pos, doc_id in enumerate(lst):
+                rank_score[doc_id] = rank_score.get(doc_id, 0.0) + float(weight) / (pos + rrf_k)
         sorted_items = sorted(rank_score.items(), key=lambda item: item[1], reverse=True)
         return [doc_id for doc_id, _ in sorted_items], [_round_score(score) for _, score in sorted_items]
 
@@ -356,19 +441,14 @@ class RetrievalPipeline:
         return doc_map, missing
 
     @staticmethod
-    def _build_rerank_input(doc) -> str:
-        """与 reranker.build_input_text 完全一致：summary + weekly(problem/solution) 或 daily(content[:800])。"""
-        text_parts = [doc.summary]
-        if doc.doc_type == "weekly":
-            text_parts.append(doc.problem)
-            text_parts.append(doc.solution)
-        else:
-            text_parts.append(doc.content[:800])
-        return "\n".join(text_parts)
+    def _build_rerank_input(doc, variant: Optional[str] = None) -> str:
+        """与 reranker.build_input_text 完全一致（两者共用 core/helper/retrieval_text 的实现）。"""
+        return rerank_input_text(doc, variant or RC.RERANK_INPUT_VARIANT)
 
-    def _cross_encoder_scores(self, query: str, docs: List[Any]) -> List[Tuple[Any, float]]:
+    def _cross_encoder_scores(self, query: str, docs: List[Any],
+                              variant: Optional[str] = None) -> List[Tuple[Any, float]]:
         """用 cross-encoder 复算分数（reranker 不返回分数），按分数降序、稳定排序（同分保持输入顺序）。"""
-        pairs = [(query, self._build_rerank_input(doc)) for doc in docs]
+        pairs = [(query, self._build_rerank_input(doc, variant)) for doc in docs]
         raw_scores = self.reranker.model.predict(pairs)
         scored = [(doc, _round_score(score)) for doc, score in zip(docs, raw_scores)]
         scored.sort(key=lambda item: item[1], reverse=True)
@@ -431,21 +511,52 @@ class RetrievalPipeline:
         bm25: bool = True,
         rrf: bool = True,
         rerank: bool = True,
-        raw_top_k: int = 6,
-        final_top_k: int = 3,
-        rrf_k: int = 60,
+        raw_top_k: int = RC.DEFAULT_RAW_TOP_K,
+        final_top_k: int = RC.DEFAULT_FINAL_TOP_K,
+        rrf_k: int = RC.DEFAULT_RRF_K,
         score_threshold: Optional[float] = None,
         trace: Optional[TraceTracker] = None,
+        # ---- v2 新增可调项（默认值即调优后的最优配置）----
+        w_dense: float = RC.DEFAULT_W_DENSE,
+        w_bm25: float = RC.DEFAULT_W_BM25,
+        bm25_query_weights: Optional[dict] = None,
+        dense_query_weights: Optional[dict] = None,
+        use_hyde: bool = RC.DEFAULT_USE_HYDE,
+        rerank_input: Optional[str] = None,
+        rerank_query: str = RC.RERANK_QUERY,
+        rerank_pool: int = RC.DEFAULT_RERANK_POOL,
+        rerank_mode: str = RC.DEFAULT_RERANK_MODE,
+        blend_alpha: float = RC.DEFAULT_BLEND_ALPHA,
     ) -> dict:
-        """执行可配置检索流水线，返回纯 JSON 可序列化 dict（契约 §2.2）。"""
+        """执行可配置检索流水线，返回纯 JSON 可序列化 dict（契约 §2.2）。
+
+        v2 新增参数：
+        - ``w_dense`` / ``w_bm25``：加权 RRF 的两路权重
+        - ``bm25_query_weights``：BM25 查询词项权重（键 query/distinctive/search_query/keywords/topics）
+        - ``dense_query_weights``：dense 多向量混合权重（键 query/search_query/hyde_experience/hyde_principle）
+        - ``use_hyde``：是否启用 HyDE 假设文档的独立召回链路
+        - ``rerank_input``：cross-encoder 文档侧文本规格（legacy/with_kw/problem_solution/full）
+        - ``rerank_query``：传给 cross-encoder 的查询侧文本（raw=原始提问 / search=改写问句 / both）
+        - ``rerank_pool``：先按融合排名截断到前 N 再重排；0 表示不截断
+        - ``rerank_mode``：blend（默认，融合排名分 + alpha×重排分）/ filter（仅置信闸门）/ sort（v1 行为）
+        - ``blend_alpha``：blend 模式下 cross-encoder 分数的权重
+
+        关于 ``score_threshold``：默认 None 表示用配置默认值 ``RC.DEFAULT_SCORE_THRESHOLD``（0.0，
+        即不做硬过滤）。v1 的 0.08 硬阈值会大量截断有效候选（见优化报告）。
+        """
         raw_query = (query or "").strip()
         if not raw_query or not any((dense, bm25, rrf, rerank)):
             # 契约 §2.3 规则 5：空输入 / 全不勾
             raise ValueError("至少选择一种检索方式")
 
-        raw_top_k = max(1, _as_int(raw_top_k, 6))
-        final_top_k = max(1, _as_int(final_top_k, 3))
-        rrf_k = max(1, _as_int(rrf_k, 60))
+        raw_top_k = max(1, _as_int(raw_top_k, RC.DEFAULT_RAW_TOP_K))
+        final_top_k = max(1, _as_int(final_top_k, RC.DEFAULT_FINAL_TOP_K))
+        rrf_k = max(1, _as_int(rrf_k, RC.DEFAULT_RRF_K))
+        w_dense = _as_float(w_dense, RC.DEFAULT_W_DENSE)
+        w_bm25 = _as_float(w_bm25, RC.DEFAULT_W_BM25)
+        rerank_pool = max(0, _as_int(rerank_pool, RC.DEFAULT_RERANK_POOL))
+        blend_alpha = _as_float(blend_alpha, RC.DEFAULT_BLEND_ALPHA)
+        rerank_mode = rerank_mode if rerank_mode in RC.RERANK_MODES else RC.DEFAULT_RERANK_MODE
 
         use_dense = bool(dense)
         use_bm25 = bool(bm25)
@@ -457,18 +568,21 @@ class RetrievalPipeline:
         do_rrf = bool(rrf) or (use_dense and use_bm25)
 
         # ---- 阶段 1：Query 优化 ----
-        optimized, opt_latency = self._optimize_query(raw_query, trace)
+        optimized, opt_latency = self._optimize_query(raw_query, trace, want_hyde=bool(use_hyde))
 
         # ---- 阶段 2/3：dense 与 bm25（同时启用时并发，stages 顺序固定 dense 在前） ----
         dense_ids: List[str] = []
         dense_scores: List[float] = []
         dense_latency = 0.0
+        dense_texts: List[dict] = []
         bm25_ids: List[str] = []
         bm25_scores: List[float] = []
         bm25_latency = 0.0
         bm25_score_mode = "bm25_raw"
-
-        search_text = optimized["search_query"] + raw_query
+        bm25_tokens_used: List[str] = []
+        hyde_ids: List[str] = []
+        hyde_scores: List[float] = []
+        hyde_latency = 0.0
 
         if use_dense and use_bm25:
             outcome: Dict[str, Any] = {}
@@ -476,13 +590,18 @@ class RetrievalPipeline:
 
             def _dense_job():
                 try:
-                    outcome["dense"] = self._run_dense(search_text, raw_top_k)
+                    outcome["dense"] = self._run_dense(
+                        raw_query, optimized, raw_top_k,
+                        use_hyde=False, query_weights=dense_query_weights,
+                    )
                 except BaseException as exc:  # noqa: BLE001 - 原样抛回主线程
                     errors["dense"] = exc
 
             def _bm25_job():
                 try:
-                    outcome["bm25"] = self._run_bm25(raw_query, optimized, raw_top_k)
+                    outcome["bm25"] = self._run_bm25(
+                        raw_query, optimized, raw_top_k, query_weights=bm25_query_weights
+                    )
                 except BaseException as exc:  # noqa: BLE001
                     errors["bm25"] = exc
 
@@ -498,20 +617,38 @@ class RetrievalPipeline:
                 if name in errors:
                     raise errors[name]
 
-            dense_ids, dense_scores, dense_latency = outcome["dense"]
-            bm25_ids, bm25_scores, bm25_latency, bm25_score_mode = outcome["bm25"]
+            dense_ids, dense_scores, dense_latency, dense_texts = outcome["dense"]
+            bm25_ids, bm25_scores, bm25_latency, bm25_score_mode, bm25_tokens_used = outcome["bm25"]
         elif use_dense:
-            dense_ids, dense_scores, dense_latency = self._run_dense(search_text, raw_top_k)
+            dense_ids, dense_scores, dense_latency, dense_texts = self._run_dense(
+                raw_query, optimized, raw_top_k, use_hyde=False, query_weights=dense_query_weights
+            )
         elif use_bm25:
-            bm25_ids, bm25_scores, bm25_latency, bm25_score_mode = self._run_bm25(raw_query, optimized, raw_top_k)
+            bm25_ids, bm25_scores, bm25_latency, bm25_score_mode, bm25_tokens_used = self._run_bm25(
+                raw_query, optimized, raw_top_k, query_weights=bm25_query_weights
+            )
+
+        # 可选第三条链路：HyDE 假设文档独立召回（不与主查询向量混合，避免稀释原始意图）
+        if use_hyde and use_dense:
+            hyde_weights = dense_query_weights or {
+                "query": 0.0, "search_query": 0.0,
+                "hyde_experience": 1.0, "hyde_principle": 1.0,
+            }
+            hyde_ids, hyde_scores, hyde_latency, _ = self._run_dense(
+                raw_query, optimized, raw_top_k, use_hyde=True, query_weights=hyde_weights
+            )
 
         if use_dense:
+            dense_extra = {
+                "encoded_texts": dense_texts,
+                "score_metric": "l2_distance",
+            }
             _add_trace(
                 trace,
                 "dense",
                 "稠密向量检索完成",
                 {
-                    "search_text": search_text[:200],
+                    "encoded_texts": dense_texts,
                     "top_k": raw_top_k,
                     "hit_ids": dense_ids,
                     "distances": dense_scores,
@@ -520,6 +657,13 @@ class RetrievalPipeline:
                 },
             )
         if use_bm25:
+            bm25_extra = {
+                "token_count": len(bm25_tokens_used),
+                "score_mode": bm25_score_mode,
+                "match_topics": optimized["match_topics"],
+                "keywords": optimized["keywords"],
+                "distinctive_terms": optimized.get("distinctive_terms"),
+            }
             _add_trace(
                 trace,
                 "bm25",
@@ -528,6 +672,8 @@ class RetrievalPipeline:
                     "query": raw_query[:120],
                     "match_topics": optimized["match_topics"],
                     "keywords": optimized["keywords"],
+                    "distinctive_terms": optimized.get("distinctive_terms"),
+                    "token_count": len(bm25_tokens_used),
                     "top_k": raw_top_k,
                     "hit_ids": bm25_ids,
                     "scores": bm25_scores,
@@ -542,26 +688,32 @@ class RetrievalPipeline:
         rrf_latency = 0.0
         if do_rrf:
             started = time.perf_counter()
-            rrf_ids, rrf_scores = self._rrf_fuse(dense_ids, bm25_ids, rrf_k)
+            rrf_ids, rrf_scores = self._rrf_fuse(
+                dense_ids, bm25_ids, rrf_k,
+                w_dense=w_dense, w_bm25=w_bm25,
+                hyde_ids=hyde_ids, w_hyde=(1.0 if hyde_ids else 0.0),
+            )
             rrf_latency = (time.perf_counter() - started) * 1000.0
+            rrf_extra = {
+                "rrf_k": rrf_k,
+                "w_dense": _round_score(w_dense),
+                "w_bm25": _round_score(w_bm25),
+                "hyde_enabled": bool(hyde_ids),
+                "dense_count": len(dense_ids),
+                "bm25_count": len(bm25_ids),
+                "fused_count": len(rrf_ids),
+            }
             _add_trace(
                 trace,
                 "rrf",
                 "RRF 融合完成",
-                {
-                    "rrf_k": rrf_k,
-                    "dense_count": len(dense_ids),
-                    "bm25_count": len(bm25_ids),
-                    "fused_count": len(rrf_ids),
-                    "fused_ids": rrf_ids,
-                    "top_scores": rrf_scores[:10],
-                    "latency_ms": _round_ms(rrf_latency),
-                },
+                dict(rrf_extra, fused_ids=rrf_ids, top_scores=rrf_scores[:10],
+                     latency_ms=_round_ms(rrf_latency)),
             )
 
         # ---- 加载 Document（供各阶段展示与 rerank 输入） ----
         upstream_ids: List[str] = rrf_ids if do_rrf else (dense_ids if use_dense else bm25_ids)
-        all_ids = list(dense_ids) + list(bm25_ids) + list(rrf_ids) + list(upstream_ids)
+        all_ids = list(dense_ids) + list(bm25_ids) + list(hyde_ids) + list(rrf_ids) + list(upstream_ids)
         doc_map, missing_ids = self._load_documents(all_ids)
         if missing_ids:
             _add_trace(
@@ -579,64 +731,92 @@ class RetrievalPipeline:
         rerank_threshold = 0.0
 
         if do_rerank:
-            upstream_docs = [doc_map[key] for key in upstream_ids if key in doc_map]
+            # 候选池截断：按融合排名先取前 rerank_pool 篇（0 = 全部），让 RRF 的排序在
+            # 「开启重排」时依然参与决策，同时降低 cross-encoder 的推理开销。
+            pool_ids = upstream_ids[:rerank_pool] if rerank_pool else list(upstream_ids)
+            upstream_docs = [doc_map[key] for key in pool_ids if key in doc_map]
+            rerank_query_text = {
+                "raw": raw_query,
+                "search": optimized["search_query"] or raw_query,
+                "both": f"{raw_query} {optimized['search_query'] or ''}".strip(),
+            }.get(rerank_query, raw_query)
             started = time.perf_counter()
-            # 契约要求：调用 rerank_documents 决定最终排序与过滤
-            authoritative_docs = self.reranker.rerank_documents(
-                raw_query, upstream_docs, final_top_k, score_threshold
-            )
-            # rerank_documents 不返回分数，用同一 build_input_text 规则复算真实 cross-encoder 分数
-            scored_pairs = self._cross_encoder_scores(raw_query, upstream_docs)
+            # 阈值语义：score_threshold=None 时用配置默认值（0.0 = 不做硬过滤）
+            default_threshold = (RC.DEFAULT_SCORE_THRESHOLD if score_threshold is None
+                                 else float(score_threshold))
+            rerank_threshold = float(default_threshold)
+            # 只跑一次交叉编码器（pairs 与 reranker.build_input_text 完全同源），
+            # 三种模式都基于同一份分数，避免重复推理。
+            scored_pairs = self._cross_encoder_scores(rerank_query_text, upstream_docs, rerank_input)
             rerank_latency = (time.perf_counter() - started) * 1000.0
 
-            default_threshold = float(getattr(self.reranker, "score_threshold", 0.08))
-            rerank_threshold = default_threshold if score_threshold is None else float(score_threshold)
-            filtered_pairs = [(doc, score) for doc, score in scored_pairs if score >= rerank_threshold]
+            # 融合排名归一化分：候选池内第 i 名得 1 - i/len(pool)
+            pool_size = max(len(pool_ids), 1)
+            rrf_norm = {key: 1.0 - (pos / pool_size) for pos, key in enumerate(pool_ids)}
+            score_lookup = {str(getattr(doc, "doc_id", "")): score for doc, score in scored_pairs}
+            gated_pairs = [(doc, score) for doc, score in scored_pairs if score >= rerank_threshold]
 
-            authoritative_ids = [str(getattr(doc, "doc_id", "")) for doc in authoritative_docs]
-            my_top_ids = [str(getattr(doc, "doc_id", "")) for doc, _ in filtered_pairs[:final_top_k]]
+            authoritative_docs: List[Any] = []
+            if rerank_mode == "filter":
+                # 只把 cross-encoder 当置信闸门：不改变融合排名，只丢弃低置信候选
+                ordered = [doc for doc, _ in gated_pairs]
+                stage_pairs = [(doc, score_lookup.get(str(getattr(doc, "doc_id", "")), 0.0))
+                               for doc in ordered]
+                final_pairs = stage_pairs[:final_top_k]
+            elif rerank_mode == "sort":
+                # v1 行为：完全由 cross-encoder 决定排序与阈值过滤（此处才需要调用 rerank_documents）
+                authoritative_docs = self.reranker.rerank_documents(
+                    rerank_query_text, upstream_docs, final_top_k, rerank_threshold
+                )
+                if authoritative_docs:
+                    final_pairs = [(doc, score_lookup.get(str(getattr(doc, "doc_id", "")), 0.0))
+                                   for doc in authoritative_docs]
+                else:
+                    final_pairs = gated_pairs[:final_top_k]
+                stage_pairs = final_pairs
+            else:
+                # blend：融合排名分 + alpha × cross-encoder 概率，二者量纲独立、无需阈值
+                blended = []
+                for doc, score in scored_pairs:
+                    key = str(getattr(doc, "doc_id", ""))
+                    blended.append((doc, score, rrf_norm.get(key, 0.0) + blend_alpha * score))
+                blended.sort(key=lambda item: item[2], reverse=True)
+                if rerank_threshold > 0:
+                    blended = [item for item in blended if item[1] >= rerank_threshold]
+                final_pairs = [(doc, score) for doc, score, _ in blended[:final_top_k]]
+                stage_pairs = [(doc, score) for doc, score, _ in blended]
 
+            rerank_extra = {
+                "mode": rerank_mode,
+                "blend_alpha": _round_score(blend_alpha),
+                "threshold": _round_score(rerank_threshold),
+                "rerank_pool": rerank_pool,
+                "input_count": len(upstream_docs),
+                "before_count": len(scored_pairs),
+                "after_count": len(gated_pairs),
+                "final_ids": [str(getattr(doc, "doc_id", "")) for doc, _ in final_pairs],
+                "doc_with_score": [
+                    {"doc_id": str(getattr(doc, "doc_id", "")), "score": _round_score(score)}
+                    for doc, score in scored_pairs
+                ],
+            }
             _add_trace(
                 trace,
                 "rerank",
                 "Cross-Encoder 重排完成",
-                {
-                    "threshold": _round_score(rerank_threshold),
-                    "reranker_default_threshold": _round_score(default_threshold),
-                    "score_threshold_arg": None if score_threshold is None else _round_score(score_threshold),
-                    "input_count": len(upstream_docs),
-                    "before_count": len(scored_pairs),
-                    "after_count": len(filtered_pairs),
-                    "doc_with_score": [
-                        {"doc_id": str(getattr(doc, "doc_id", "")), "score": _round_score(score)}
-                        for doc, score in scored_pairs
-                    ],
-                    "authoritative_ids": authoritative_ids,
-                    "latency_ms": _round_ms(rerank_latency),
-                },
+                dict(rerank_extra, authoritative_ids=[str(getattr(doc, "doc_id", ""))
+                                                      for doc in authoritative_docs],
+                     score_threshold_arg=None if score_threshold is None else _round_score(score_threshold),
+                     latency_ms=_round_ms(rerank_latency)),
             )
 
-            # rerank 阶段展示全部过阈值候选（不截断）；final 取前 final_top_k
-            rerank_results = self._pairs_to_results(filtered_pairs)
-
-            if authoritative_ids == my_top_ids:
-                score_lookup = {str(getattr(doc, "doc_id", "")): score for doc, score in scored_pairs}
-                final_pairs = [(doc, score_lookup.get(str(getattr(doc, "doc_id", "")), 0.0)) for doc in authoritative_docs]
-            else:
-                # 仅当显式传入的 score_threshold 与 reranker 自身阈值不同时会走到这里：
-                # reranker 内部固定用自身阈值过滤，此时以显式阈值的自身计算为准并记一条日志。
-                _add_trace(
-                    trace,
-                    "rerank",
-                    "显式 score_threshold 与 reranker 内部阈值不同，最终结果按显式阈值计算",
-                    {
-                        "explicit_threshold": _round_score(rerank_threshold),
-                        "reranker_default_threshold": _round_score(default_threshold),
-                        "authoritative_ids": authoritative_ids,
-                        "computed_ids": my_top_ids,
-                    },
-                )
-                final_pairs = filtered_pairs[:final_top_k]
+            # rerank 阶段展示候选池内的全部候选（按本模式的实际决策顺序）
+            final_ids = {str(getattr(d, "doc_id", "")) for d, _ in final_pairs}
+            stage_order = stage_pairs + [(doc, score) for doc, score in scored_pairs
+                                         if str(getattr(doc, "doc_id", "")) not in final_ids
+                                         and str(getattr(doc, "doc_id", "")) not in
+                                         {str(getattr(d, "doc_id", "")) for d, _ in stage_pairs}]
+            rerank_results = self._pairs_to_results(stage_order)
             final_source = "rerank"
 
         # ---- 组装 stages（固定顺序：optimize_prompt, dense, bm25, rrf, rerank） ----
@@ -650,18 +830,26 @@ class RetrievalPipeline:
         }
         if use_dense:
             stage_map["dense"] = self._make_stage(
-                "dense", dense_latency, self._make_results(dense_ids, dense_scores, doc_map)
+                "dense", dense_latency, self._make_results(dense_ids, dense_scores, doc_map),
+                extra=dense_extra,
             )
         if use_bm25:
             stage_map["bm25"] = self._make_stage(
-                "bm25", bm25_latency, self._make_results(bm25_ids, bm25_scores, doc_map)
+                "bm25", bm25_latency, self._make_results(bm25_ids, bm25_scores, doc_map),
+                extra=bm25_extra,
             )
         if do_rrf:
             stage_map["rrf"] = self._make_stage(
-                "rrf", rrf_latency, self._make_results(rrf_ids, rrf_scores, doc_map)
+                "rrf", rrf_latency, self._make_results(rrf_ids, rrf_scores, doc_map),
+                extra=rrf_extra,
             )
         if do_rerank:
-            stage_map["rerank"] = self._make_stage("rerank", rerank_latency, rerank_results)
+            stage_map["rerank"] = self._make_stage("rerank", rerank_latency, rerank_results,
+                                                   extra=rerank_extra)
+        if hyde_ids:
+            stage_map["hyde"] = self._make_stage(
+                "hyde", hyde_latency, self._make_results(hyde_ids, hyde_scores, doc_map)
+            )
 
         stages = [stage_map[name] for name in PIPELINE_STAGE_ORDER if name in stage_map]
 
@@ -699,6 +887,49 @@ class RetrievalPipeline:
             "optimized": dict(optimized),
             "enabled_pipeline": [stage["name"] for stage in stages],
         }
+
+    def retrieve_documents_with_scores(self, query: str,
+                                       raw_top_k: int = RC.DEFAULT_RAW_TOP_K,
+                                       final_top_k: int = RC.DEFAULT_FINAL_TOP_K,
+                                       **kwargs) -> Tuple[list, Dict[str, float]]:
+        """生产检索入口（带分数）：返回 ``(Document 列表, {doc_id: cross-encoder 分})``。
+
+        分数与 ``run()`` 的 ``final.results[*].score`` 完全同源，供 Evaluator 做证据分级。
+        注意：blend 模式下 final 的**排序**由融合分决定，``score`` 仍是 cross-encoder 概率，
+        因此调用方应取 ``max(scores.values())`` 而不是「第一条的分数」。
+        """
+        result = self.run(query, raw_top_k=raw_top_k, final_top_k=final_top_k, **kwargs)
+        final = result.get("final") or {}
+        doc_ids = [str(i) for i in (final.get("doc_ids") or [])]
+        score_map: Dict[str, float] = {}
+        for item in final.get("results") or []:
+            doc_id = str(item.get("doc_id", ""))
+            if doc_id:
+                score_map[doc_id] = _round_score(item.get("score", 0.0))
+        if not doc_ids:
+            return [], {}
+        doc_map, missing = self._load_documents(doc_ids)
+        if missing:
+            _add_trace(
+                kwargs.get("trace"),
+                "retrieve_documents",
+                "候选 doc_id 未解析为 Document，已跳过",
+                {"missing_ids": missing},
+            )
+        docs = [doc_map[key] for key in doc_ids if key in doc_map]
+        return docs, {str(getattr(doc, "doc_id", "")): score_map.get(str(getattr(doc, "doc_id", "")), 0.0)
+                      for doc in docs}
+
+    def retrieve_documents(self, query: str, raw_top_k: int = RC.DEFAULT_RAW_TOP_K,
+                           final_top_k: int = RC.DEFAULT_FINAL_TOP_K, **kwargs) -> list:
+        """生产检索入口：与 ``run()`` 完全同路径，额外把最终 doc_ids 装配成 Document 列表。
+
+        RAG_agent / 引导链路需要 ``doc.problem / solution / content / emotion`` 等对象属性，
+        而 ``run()`` 按调试契约返回纯 JSON（doc_view dict）。本方法复用 run() 内部同一套
+        ``_load_documents`` 装载逻辑，保证「调试台看到的排名」与「线上 Document 顺序」恒等。
+        """
+        docs, _ = self.retrieve_documents_with_scores(query, raw_top_k, final_top_k, **kwargs)
+        return docs
 
 
 def run_pipeline(query: str, **kwargs) -> dict:

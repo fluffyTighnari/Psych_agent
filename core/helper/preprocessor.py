@@ -205,7 +205,9 @@ class DocumentPreprocessor:
             source = "experience"
         elif doc_type == "weekly":
             date_str = None
-            title = filename
+            # 与 daily 一致：去掉扩展名。此前直接用 filename，
+            # 导致 title 带 ".md"（如「选择与价值.md」）泄漏到前端展示。
+            title = os.path.splitext(filename)[0]
             source = "principle"
         else:
             GLOBAL_TRACKER.add_trace(

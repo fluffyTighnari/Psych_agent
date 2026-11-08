@@ -1,12 +1,18 @@
 from sentence_transformers import CrossEncoder
 
+from core.helper.retrieval_text import rerank_input_text
 from core.helper.trace_tracker import current_tracker
 
 
 class Reranker:
-    def __init__(self, model_path, score_threshold: float = 0.08):
+    def __init__(self, model_path, score_threshold: float = 0.08, input_variant: str | None = None):
         self.model = CrossEncoder(str(model_path))
         self.score_threshold = score_threshold
+        # 文档侧输入规格：与 retrieval_pipeline._build_rerank_input 共用同一实现，避免口径漂移
+        self.input_variant = input_variant
+
+    def build_input_text(self, doc) -> str:
+        return rerank_input_text(doc, self.input_variant) if self.input_variant else rerank_input_text(doc)
 
     def rerank_documents(self, query, documents, top_k=3, score_threshold=None):
         if not documents:
@@ -17,13 +23,7 @@ class Reranker:
         threshold = self.score_threshold if score_threshold is None else float(score_threshold)
 
         def build_input_text(doc):
-            text_parts = [doc.summary]
-            if doc.doc_type == "weekly":
-                text_parts.append(doc.problem)
-                text_parts.append(doc.solution)
-            else:
-                text_parts.append(doc.content[:800])
-            return "\n".join(text_parts)
+            return self.build_input_text(doc)
 
         pairs = [(query, build_input_text(doc)) for doc in documents]
         scores = self.model.predict(pairs)

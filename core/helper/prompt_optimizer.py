@@ -4,7 +4,7 @@ import threading
 import time
 from functools import lru_cache, wraps
 
-from config.prompt_config import optimizer_prompt
+from config.prompt_config import optimizer_prompt, optimizer_prompt_lite
 from core.helper.trace_tracker import GLOBAL_TRACKER
 from core.helper.json_extract import safe_load_json, normalize_json_text, strip_code_blocks, extract_balanced_json
 
@@ -60,6 +60,7 @@ class PromptOptimizer:
         # 目的：同一 prompt 重复做检索实验时 optimized 稳定可复现（本地 LLM 改写本身是非确定性的），
         # 同时省掉重复的 LLM 调用；TTL 到期或显式 cache_clear() 后重算。
         # 注意：命中缓存的调用不会写 trace（只有真正执行改写的调用才打印「Query优化完成」）。
+        # 缓存键包含 want_hyde，所以 lite / 完整两个提示词的结果互不串用。
         cached_once = ttl_cache(seconds=1800)(self._optimize_prompt_uncached)
         self.optimize_prompt = lru_cache(maxsize=256, typed=False)(cached_once)
 
@@ -67,8 +68,10 @@ class PromptOptimizer:
         """显式失效查询改写缓存（模型/主题集合变更后调用）。"""
         self.optimize_prompt.cache_clear()
 
-    def _optimize_prompt_uncached(self, prompt: str):
-        system_content = optimizer_prompt
+    def _optimize_prompt_uncached(self, prompt: str, want_hyde: bool = False):
+        # 默认走 lite 提示词：不生成 HyDE 长文本（默认链路用不到），单次调用更快；
+        # 只有真正启用 HyDE 召回链路时才让模型多写两段假设文档。
+        system_content = optimizer_prompt if want_hyde else optimizer_prompt_lite
         messages = [
             {"role": "system", "content": system_content},
             {"role": "user", "content": prompt}
@@ -94,11 +97,13 @@ class PromptOptimizer:
 
             data["match_topics"] = [t for t in data["match_topics"] if t in self.valid_topic_set][:3]
 
-            clean_kw = []
-            for kw in data["keywords"]:
-                if isinstance(kw, str) and 1 <= len(kw.strip()) <= 4:
-                    clean_kw.append(kw.strip())
-            data["keywords"] = clean_kw
+            data["keywords"] = self._clean_terms(data["keywords"], min_len=2, max_len=6, limit=4)
+            # v2 新增字段：缺失时给空值，调用方按「有则用、无则退化为 v1 行为」处理
+            data["distinctive_terms"] = self._clean_terms(
+                data.get("distinctive_terms", []), min_len=2, max_len=12, limit=5
+            )
+            data["hyde_experience"] = self._clean_text(data.get("hyde_experience", ""), 400)
+            data["hyde_principle"] = self._clean_text(data.get("hyde_principle", ""), 400)
 
             return data
 
@@ -134,5 +139,36 @@ class PromptOptimizer:
         return {
             "search_query": prompt,
             "match_topics": [],
-            "keywords": []
+            "keywords": [],
+            "distinctive_terms": [],
+            "hyde_experience": "",
+            "hyde_principle": "",
         }
+
+    @staticmethod
+    def _clean_terms(value, min_len: int = 2, max_len: int = 6, limit: int = 4) -> list:
+        """清洗 LLM 给出的词项列表：去空、去重、限长、限数量（保序）。"""
+        out: list[str] = []
+        seen = set()
+        if not isinstance(value, (list, tuple)):
+            return out
+        for item in value:
+            if not isinstance(item, str):
+                continue
+            term = item.strip().strip("，。、,.;；：: ").strip()
+            if not (min_len <= len(term) <= max_len) or term in seen:
+                continue
+            seen.add(term)
+            out.append(term)
+            if len(out) >= limit:
+                break
+        return out
+
+    @staticmethod
+    def _clean_text(value, limit: int) -> str:
+        """清洗长文本字段：压平空白、限长。"""
+        if not isinstance(value, str):
+            return ""
+        text = re.sub(r"\s+", " ", value).strip()
+        return text[:limit]
+

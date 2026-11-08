@@ -1,10 +1,12 @@
+import os
 import requests
 from typing import List, Dict, Optional
 from config.model_config import OLLAMA_GLOBAL
 
 class OllamaRemoteClient:
     def __init__(self):
-        self.base_url = OLLAMA_GLOBAL.rstrip("/")
+        # 地址可配置（Docker 内指向 ollama 服务名），默认本机 Ollama，行为不变
+        self.base_url = os.environ.get("OLLAMA_HOST", OLLAMA_GLOBAL).rstrip("/")
         self.timeout = 120
 
     def list_local_models(self) -> List[str]:

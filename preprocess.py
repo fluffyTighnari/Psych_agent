@@ -7,6 +7,7 @@ BM25更新索引库"""
 from config.model_config import GLOBAL_MODEL, EMBEDDING_MODEL
 from config.path_config import KNOWLEDGE_DIR, DATA_DIR, VECTOR_DB_DIR, COLLECTION_NAME, BM25_PATH, META_DB_PATH
 from core.helper.BM25 import BM25TagIndexer
+from core.helper.retrieval_config import BM25_B, BM25_FIELD_WEIGHTS, BM25_K1
 from core.loader.document_loader import DocumentLoader
 from core.embedding.embedding import EmbeddingModel
 from core.meta_db.knowledge_meta import KnowledgeMetaDB
@@ -59,8 +60,9 @@ print("VectorDB更新知识库完成")
 indexer = BM25TagIndexer(
     documents=all_docs,
     bm25_path=BM25_PATH,
-    topic_weight=3,
-    keyword_weight=1
+    field_weights=BM25_FIELD_WEIGHTS,
+    k1=BM25_K1,
+    b=BM25_B,
 )
 
 print("BM25TagIndexer更新索引库完成")

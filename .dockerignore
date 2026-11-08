@@ -1,0 +1,49 @@
+# ===== 版本库与构建缓存 =====
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+build
+/dist
+
+# ===== 敏感配置与密钥（绝不进镜像/构建上下文） =====
+.env
+.env.local
+.env.prod
+api_key.txt
+*.secret
+config/model_store.json
+config/id_map.json
+
+# ===== 本地数据与模型（运行时挂载卷，避免构建上下文 GB 级） =====
+data
+models
+store
+*.db
+*.sqlite
+*.pkl
+*.gguf
+*.bin
+
+# ===== 日志与临时产物 =====
+*.log
+backend.log
+docs/_shots
+tmp
+.cache
+.pytest_cache
+test_output
+
+# ===== 工具/同步标记 =====
+.claude
+.cursor
+.stfolder
+.stignore
+node_modules
+RAG
+.DS_Store
+Thumbs.db

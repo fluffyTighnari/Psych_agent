@@ -1,0 +1,48 @@
+/* ==========================================================================
+   字体：全部自托管，不依赖 Google Fonts CDN
+   --------------------------------------------------------------------------
+   CJK 用可变字体 + unicode-range 分片：浏览器按页面实际用到的字片按需下载，
+   通常首屏只取几个分片（中文正文 30–60KB）。
+
+   本文件是独立 CSS 入口，由 index.html 用 <link media="print" onload> 异步引入：
+   CJK 分片会产生 200+ 条 @font-face，若并入主样式会阻塞首屏渲染。
+   异步加载期间由 tokens.css 里的 *Fallback 族承接，字体就绪后自动替换。
+   ========================================================================== */
+
+/* ---------- 拉丁：Fraunces（衬线标题） ---------- */
+@import '@fontsource/fraunces/400.css';
+@import '@fontsource/fraunces/600.css';
+@import '@fontsource/fraunces/700.css';
+@import '@fontsource/fraunces/900.css';
+@import '@fontsource/fraunces/600-italic.css';
+
+/* ---------- 拉丁：JetBrains Mono（ID / 数字 / 代码） ---------- */
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+/* ---------- 中文：可变字体，一字重区间覆盖 400/500/700 ---------- */
+@import '@fontsource-variable/noto-serif-sc/wght.css';
+@import '@fontsource-variable/noto-sans-sc/wght.css';
+
+/* ==========================================================================
+   度量对齐的回退字体：让系统字体在尺寸上与目标字体接近，
+   抑制「字体替换瞬间」的 CLS。数值按常见中文字体的 ascender/descender 比例设定。
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Noto Serif SC Fallback';
+  src: local('Songti SC'), local('SimSun'), local('STSong');
+  size-adjust: 105%;
+  ascent-override: 88%;
+  descent-override: 12%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC Fallback';
+  src: local('PingFang SC'), local('Microsoft YaHei'), local('Segoe UI');
+  size-adjust: 102%;
+  ascent-override: 88%;
+  descent-override: 12%;
+  line-gap-override: 0%;
+}

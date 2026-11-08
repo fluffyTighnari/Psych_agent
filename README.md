@@ -89,6 +89,11 @@ python main.py
 
 或双击 `run.bat`（自动探测 Python 解释器、等待后端就绪后打开网页 `http://127.0.0.1:8000`）。
 
+或在安装docker后运行：
+```bash
+docker compose up -d --build
+```
+
 ## 模型配置说明
 
 系统有三个模型槽位（网页端模型配置页可改，保存即生效并持久化到 `config/model_store.json`）：
@@ -100,6 +105,26 @@ python main.py
 | `chat` | 对话生成 / 引导推理 | DeepSeek API |
 
 每个槽位 `driver=ollama` 时使用 `ollama_name`（本地 Ollama 模型名）；`driver=api` 时使用 `api_model_name` + `api_key` / `base_url`（云端 API）。
+
+## 引导型咨询评测
+
+`guide_eval/` 是一套自包含的评测工具，用来量化「引导型咨询是否有效、哪家模型/哪版 prompt 更好、judge 本身准不准」：
+
+- 12 条带人工标注矛盾的种子用例 × 5 种条件（无 prompt / 泛化咨询师 / 直接策略 / 生产引导 prompt / 极简引导）
+- 多轮用户模拟器（隐藏背景 + 阻抗策略）+ 两阶段 LLM 判定器（证据编码 → 盲评）
+- 核心链路指标：矛盾发现率 L1 → 针对性追问率 L2 → 用户自我解释率 L3 → 完整链路率
+- judge 校准：人工盲评 + 二次加权 kappa / ICC(2,1)，不通过就不能下结论
+
+```bash
+python -m guide_eval.run --selftest      # 验证指标实现
+python -m guide_eval.run --mock          # 离线跑通全流程（不需要 API key）
+# 真实评测：cp guide_eval/models.example.json guide_eval/models.json 并填 .env
+python -m guide_eval.run --models deepseek-chat,qwen-plus --limit-cases 8
+```
+
+不想逐家申请 key：`guide_eval/presets/` 提供三套现成配置——`openrouter.json`（一个 key 覆盖 GPT/Claude/Gemini/DeepSeek/Qwen/GLM/Kimi，推荐做主实验）、`opencode-go.json`（$10/月订阅，开源模型子集）、`cli.json`（`opencode run`/`claude -p`/`codex exec`，仅作生态效度补充）。
+
+详见 [`guide_eval/README.md`](guide_eval/README.md)（方法论，含 §3.2b 单网关/订阅/CLI 选型）与 [`guide_eval/RATING_GUIDE.md`](guide_eval/RATING_GUIDE.md)（人工盲评标准）。
 
 ## 安全与隐私
 
@@ -113,3 +138,19 @@ python main.py
 - **`model 'xxx' not found`**：Ollama 里没有该模型，执行 `ollama pull <模型名>`，或在网页模型配置里换成已安装的模型
 - **检索不到内容**：先确认执行过 `python preprocess.py`，且 `data/notes/` 下有日记/复盘文件
 - **改模型后不生效**：配置保存后会重置模型缓存，若仍未生效请重启服务
+## Docker 部署（可选）
+
+项目根已提供 `Dockerfile` / `docker-compose.yml` / `.dockerignore`，可一键起后端 + Ollama：
+
+```bash
+# 前置：.env 已配置；本地模型已拉取到 ./models（见上文「拉取本地模型」）
+#       config/model_store.json 若不存在，先创建空文件：copy NUL config\model_store.json
+docker compose up -d --build
+```
+
+- 访问 `http://localhost:8000`
+- 容器复用宿主机的 `./models`、`./data`、`./store` 挂载卷，无需重新下载模型/重新预处理
+- 容器内通过服务名访问 Ollama（`OLLAMA_HOST=http://ollama:11434`，代码已支持该环境变量；本地非 Docker 运行不受影响）
+- 停止：`docker compose down`
+
+> 注意：embedding/reranker 模型需先在本机 `./models/` 就绪再启动容器；qwen3.5:9b-128k 等对话模型由 compose 内的 Ollama 服务按需拉取（首次调用会下载，耗时取决于网络）。

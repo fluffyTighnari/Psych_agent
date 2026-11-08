@@ -1,0 +1,380 @@
+/* ==========================================================================
+   图谱 SVG 渲染层
+   --------------------------------------------------------------------------
+   所有视觉状态走 CSS 类，不做 JS 重绘：
+     :hover / .is-hovered   光晕显现、细节淡入
+     .is-active             选中：光晕常驻 + 虚线环
+     .is-dimmed             聚焦模式下的非目标
+     :focus-visible         键盘焦点
+   暗色只需覆盖下面的变量块。
+   ========================================================================== */
+
+.graph-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  cursor: grab;
+  touch-action: none;
+
+  /* ---------- 亮色：线是视觉主体，底色留白 ---------- */
+  --ink-stroke: var(--text-secondary);
+  --ink-faint: var(--text-tertiary);
+  --soft-fill: var(--surface-raised);
+  --halo-opacity: 0.1;
+
+  /*
+   * 描边宽度由 JS 按缩放补偿后以像素值下发（--sw-main / --sw-sub /
+   * --sw-trunk / --sw-thin / --sw-trail）。
+   * 不用 calc(var(--stroke-scale) * 1.5px)：SVG 的 stroke-width 对
+   * calc + 未定义变量的组合支持不一致，曾导致整条声明失效、线宽回落到 1。
+   */
+  --sw-main: 1.5px;
+  --sw-sub: 1.1px;
+}
+
+.graph-svg:active {
+  cursor: grabbing;
+}
+
+/* ---------- 连线 ---------- */
+.glink {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: var(--sw-link, 1.2px);
+  stroke-linecap: round;
+  opacity: 0.55;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.glink--dashed {
+  stroke-dasharray: 5 5;
+  opacity: 0.4;
+}
+
+/* 有节点被 hover/选中时，连线整体让位（相关边由节点态反推，见下） */
+.graph-svg.is-focused .glink {
+  opacity: 0.14;
+}
+
+/* ---------- 节点 ---------- */
+.gnode {
+  cursor: pointer;
+  color: var(--entity-document); /* 光晕取 currentColor，按类型覆写 */
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+/* 每个类型的主色 + 浅纸底 */
+.gnode--session {
+  color: var(--entity-session);
+  --node-soft: var(--entity-session-soft);
+}
+.gnode--memory {
+  color: var(--entity-memory);
+  --node-soft: var(--entity-memory-soft);
+}
+.gnode--document {
+  color: var(--entity-document);
+  --node-soft: var(--entity-document-soft);
+}
+.gnode--reason {
+  color: var(--entity-reason);
+  --node-soft: var(--entity-reason-soft);
+}
+
+/* ---------- 字形分件 ---------- */
+/*
+ * 几何来自 glyphs.ts 的 48 × 48 设计坐标，渲染器用
+ * scale(1/24) + translate(-24) 换算到以 r 为单位的节点局部坐标。
+ * vector-effect: non-scaling-stroke 让描边宽度保持在屏幕像素，
+ * 不随节点半径与视口缩放变形。
+ */
+.gnode__part {
+  vector-effect: non-scaling-stroke;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    stroke var(--dur-base) var(--ease-out);
+}
+
+/* 纸片主体：浅底 + 类型色描边 */
+.gnode__part--body {
+  fill: var(--node-soft);
+  stroke-width: var(--sw-main);
+}
+
+/* 会话轨道环：只留轮廓，避免 14px 图例被填成一枚色点 */
+.gnode__part--ring {
+  fill: none;
+  stroke-width: var(--sw-main);
+}
+
+/* 会话的穿越轨道线 */
+.gnode__part--orbit {
+  stroke-width: var(--sw-sub);
+  opacity: 0.62;
+}
+
+/* 枝蔓主干与分枝 */
+.gnode__part--trunk {
+  stroke-width: var(--sw-trunk);
+}
+.gnode__part--branch {
+  stroke-width: var(--sw-main);
+}
+
+/* 纸片折痕 / 纸飞机折线：常显但压暗 */
+.gnode__part--detail {
+  stroke-width: var(--sw-sub);
+  opacity: 0.45;
+}
+
+/* 会话的回环笔迹 */
+.gnode__part--echo {
+  stroke-width: var(--sw-sub);
+  opacity: 0.45;
+}
+
+/* 记忆叶片：浅底 + 细描边 */
+.gnode__part--leaf {
+  fill: var(--node-soft);
+  stroke-width: var(--sw-sub);
+}
+
+/* 叶脉：只留一道很淡的线 */
+.gnode__part--vein {
+  stroke-width: var(--sw-thin);
+  opacity: 0.3;
+}
+
+/* 推理左侧尾迹：短虚线 */
+.gnode__part--trail {
+  stroke-width: var(--sw-trail);
+  opacity: 0.38;
+  stroke-dasharray: 3 3;
+}
+
+/* 文档卷边：类型色 10% 的薄面 */
+.gnode__part--fold {
+  fill: currentColor;
+  fill-opacity: 0.1;
+  stroke-width: var(--sw-sub);
+}
+
+/* 根须一类的极轻笔触 */
+.gnode__part--faint {
+  stroke-width: var(--sw-sub);
+  opacity: 0.35;
+}
+
+.gnode__dot {
+  fill: currentColor;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+/* 整枚图形（会话）：保持原图的填充层次，透明度仍受节点状态控制 */
+.gnode__image {
+  pointer-events: none;
+}
+
+/* 光晕：hover/选中时才亮 */
+.gnode__halo {
+  fill: currentColor;
+  opacity: 0;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    r var(--dur-base) var(--ease-out);
+}
+
+/*
+ * 整枚图形节点（会话）同样需要 hover 反馈。
+ *
+ * 早先这里是一刀切 `display: none`，理由是"实底图形再叠圆盘会像多出一个粉盘"。
+ * 那是纯色光晕时代的问题 —— 现在光晕是径向渐变（中心 55% 几乎透明），
+ * 可见的那圈落在字形外缘（字形最大 ~0.79r，光晕亮带在 ~1.24r），不会糊掉图形。
+ * 关掉它的代价是：会话节点 hover / 选中完全没有反馈，看起来像坏了。
+ */
+.gnode--image .gnode__halo {
+  r: 1.25;
+}
+
+.gnode--image:hover .gnode__halo,
+.gnode--image.is-hovered .gnode__halo {
+  r: 1.45;
+}
+
+.gnode--image.is-active .gnode__halo {
+  opacity: calc(var(--halo-opacity) * 1.5);
+  r: 1.55;
+}
+
+/* 选中环（虚线，缓慢旋转） */
+.gnode__ring {
+  vector-effect: non-scaling-stroke;
+  stroke: currentColor;
+  stroke-width: var(--sw-sub);
+  stroke-dasharray: 3 4;
+  opacity: 0;
+  transform-origin: center;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+/* ---------- 状态 ---------- */
+
+/*
+ * 光晕只做氛围，不能盖住字形。
+ * 原本 r 从 1.35 放大到 2.1、不透明度 0.16 —— 视觉上是一块实心粉圆，
+ * 把「带缺口的环 + 回卷尾」这些细节全糊掉了。
+ * 现在用径向渐变做柔和衰减，尺寸只比字形略大。
+ */
+.gnode:hover .gnode__halo,
+.gnode.is-hovered .gnode__halo {
+  opacity: var(--halo-opacity);
+  r: 1.55;
+}
+
+/* hover / 选中时，原本压暗的细节线抬起来 */
+.gnode:hover .gnode__part--detail,
+.gnode.is-hovered .gnode__part--detail,
+.gnode.is-active .gnode__part--detail,
+.gnode:hover .gnode__part--echo,
+.gnode.is-hovered .gnode__part--echo,
+.gnode.is-active .gnode__part--echo {
+  opacity: 0.75;
+}
+
+.gnode:hover .gnode__part--vein,
+.gnode.is-hovered .gnode__part--vein,
+.gnode.is-active .gnode__part--vein {
+  opacity: 0.5;
+}
+
+.gnode:hover .gnode__part--orbit,
+.gnode.is-hovered .gnode__part--orbit,
+.gnode.is-active .gnode__part--orbit {
+  opacity: 0.8;
+}
+
+.gnode:hover .gnode__part--trail,
+.gnode.is-hovered .gnode__part--trail,
+.gnode.is-active .gnode__part--trail {
+  opacity: 0.65;
+}
+
+/* 选中：光晕常驻 + 虚线环 */
+.gnode.is-active .gnode__halo {
+  opacity: calc(var(--halo-opacity) * 1.5);
+  r: 1.65;
+}
+
+.gnode.is-active .gnode__ring {
+  opacity: 0.65;
+  animation: gnode-ring-spin 8s linear infinite;
+}
+
+@keyframes gnode-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 聚焦模式：非目标类型淡出 */
+.gnode.is-dimmed {
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+/* 键盘焦点 */
+.gnode:focus-visible {
+  outline: none;
+}
+
+.gnode:focus-visible .gnode__ring {
+  opacity: 1;
+  stroke-dasharray: none;
+  stroke-width: var(--sw-focus, 2px);
+}
+
+/* ---------- 标签 ---------- */
+.glabel {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  fill: var(--text-primary);
+  text-anchor: middle;
+  dominant-baseline: hanging;
+  pointer-events: none;
+  paint-order: stroke;
+  /* 描边底：压在其它线/节点上仍可读 */
+  stroke: var(--surface-overlay);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.glabel--session {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.glabel--reason {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.glabel.is-hidden {
+  opacity: 0;
+}
+
+/* ==========================================================================
+   暗色：只覆盖变量，字形路径完全复用
+   ========================================================================== */
+
+[data-theme='dark'] .graph-svg,
+.graph-svg[data-theme='dark'] {
+  --ink-stroke: #e8dfd0;
+  --ink-faint: #9a9086;
+  --soft-fill: #2a2521;
+  --halo-opacity: 0.24;
+
+  /* 深底上描边要更实，否则会灰掉（数值由 JS 覆盖时以 JS 为准） */
+  --ink-stroke-dark: #e8dfd0;
+}
+
+[data-theme='dark'] .graph-svg .glink,
+.graph-svg[data-theme='dark'] .glink {
+  /* 深底上密虚线容易糊成实线，间距放大 20% */
+  stroke-dasharray: 6 6;
+  opacity: 0.5;
+}
+
+[data-theme='dark'] .graph-svg .glabel,
+.graph-svg[data-theme='dark'] .glabel {
+  fill: #ebe3d5;
+  stroke: #1c1917;
+}
+
+/* 深色下的实体色需要提亮 + 让出饱和度，否则在深底上刺眼 */
+[data-theme='dark'] .graph-svg {
+  --entity-session: #e0705a;
+  --entity-memory: #cfaa6a;
+  --entity-document: #6d9d97;
+  --entity-reason: #a98cc0;
+
+  /* 纸片浅底在深色下压成低亮度同色，避免整块发亮 */
+  --entity-session-soft: #3a2520;
+  --entity-memory-soft: #373026;
+  --entity-document-soft: #23302c;
+  --entity-reason-soft: #2f2838;
+}
+
+/* 减弱动效：选中环不转 */
+@media (prefers-reduced-motion: reduce) {
+  .gnode.is-active .gnode__ring {
+    animation: none;
+  }
+}

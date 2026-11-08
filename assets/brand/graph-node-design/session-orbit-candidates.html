@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会话图标 · 三种落地方式</title>
+<style>
+  :root{--session:#c24a2e;--session-soft:#f6dcd2}
+  body{margin:0;background:#f4efe4;color:#2b2724;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{width:min(1040px,calc(100% - 40px));margin:0 auto;padding:38px 0 52px}
+  h1{font-size:22px;margin:0 0 6px}
+  .lead{color:#6f665d;font-size:13px;line-height:1.8;margin:0 0 26px;max-width:760px}
+  .panel{background:#fdfbf5;border:1px solid #e6dcc8;border-radius:16px;padding:24px 28px;margin-bottom:18px}
+  .panel h2{font-size:13px;letter-spacing:.02em;margin:0 0 4px;color:#8b7f70;font-weight:600}
+  .panel .note{font-size:11px;color:#a29788;margin:0 0 18px;line-height:1.6}
+  .row{display:flex;align-items:flex-end;gap:34px;flex-wrap:wrap}
+  .item{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .item span{font:10px/1.4 Consolas,monospace;color:#a29788}
+  .dark{background:#1c1917;border-color:#332b25}
+  .dark h2,.dark .note{color:#9a9086}
+  .dark .item span{color:#8e8378}
+  svg{display:block;overflow:visible}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>会话图标 · 三种落地方式</h1>
+  <p class="lead">同一尺寸下对比：现网气泡、你给的 SVG 原图（去底裁切）、按原图轮廓重画的线稿。重点看 52px 节点与 14px 图例两档。</p>
+
+  <section class="panel">
+    <h2>1 · 现网气泡（当前生产）</h2>
+    <p class="note">线稿，跟随主题色；辨识点仍是“聊天气泡”。</p>
+    <div class="row">
+      <div class="item"><svg width="52" height="52" viewBox="0 0 48 48"><use href="#bubble-mark"/></svg><span>52 px</span></div>
+      <div class="item"><svg width="26" height="26" viewBox="0 0 48 48"><use href="#bubble-mark"/></svg><span>26 px</span></div>
+      <div class="item"><svg width="14" height="14" viewBox="0 0 48 48"><use href="#bubble-mark"/></svg><span>14 px</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>2 · SVG 原图（去底 + 裁到图形）</h2>
+    <p class="note">100% 保留你认可的形态与配色；但它是填充图形、颜色固定，14px 会收成一枚色点。</p>
+    <div class="row">
+      <div class="item"><img src="session-orbit.svg" width="52" height="45" alt=""><span>52 px</span></div>
+      <div class="item"><img src="session-orbit.svg" width="26" height="23" alt=""><span>26 px</span></div>
+      <div class="item"><img src="session-orbit.svg" width="14" height="12" alt=""><span>14 px</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3 · 按原图轮廓重画（线稿 + 轨道 + 两点）</h2>
+    <p class="note">保留不对称圆角三角形主体、穿越主体的轨道线、一高一低两个点；改成会话色，能跟随明暗主题，小尺寸仍有轮廓。</p>
+    <div class="row">
+      <div class="item"><svg width="96" height="96" viewBox="0 0 48 48"><use href="#orbit-mark"/></svg><span>96 px</span></div>
+      <div class="item"><svg width="52" height="52" viewBox="0 0 48 48"><use href="#orbit-mark"/></svg><span>52 px</span></div>
+      <div class="item"><svg width="26" height="26" viewBox="0 0 48 48"><use href="#orbit-mark"/></svg><span>26 px</span></div>
+      <div class="item"><svg width="14" height="14" viewBox="0 0 48 48"><use href="#orbit-mark"/></svg><span>14 px</span></div>
+    </div>
+  </section>
+
+  <section class="panel dark">
+    <h2>暗色主题</h2>
+    <p class="note">线稿使用暗色会话色；原图仍是固定浅珊瑚色。</p>
+    <div class="row">
+      <div class="item"><img src="session-orbit.svg" width="52" height="45" alt=""><span>原图 52</span></div>
+      <div class="item"><svg width="52" height="52" viewBox="0 0 48 48"><use href="#orbit-mark-dark"/></svg><span>线稿 52</span></div>
+      <div class="item"><svg width="26" height="26" viewBox="0 0 48 48"><use href="#orbit-mark-dark"/></svg><span>线稿 26</span></div>
+      <div class="item"><svg width="14" height="14" viewBox="0 0 48 48"><use href="#orbit-mark-dark"/></svg><span>线稿 14</span></div>
+    </div>
+  </section>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="bubble-mark" viewBox="0 0 48 48">
+    <path d="M14 8 H36 Q42 8 42 15 V30 Q42 36 36 36 H30 C28 41 25 41 23 36 H12 Q6 36 6 30 V15 Q6 8 14 8 Z" style="fill:#f6dcd2;stroke:#c24a2e;stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke"/>
+    <path d="M14 23 C17 17 21 17 23 22 C25 27 29 27 33 22" style="fill:none;stroke:#c24a2e;stroke-width:1.1;opacity:.45;stroke-linecap:round;vector-effect:non-scaling-stroke"/>
+    <circle cx="34" cy="22" r="1.2" style="fill:#c24a2e;opacity:.4"/>
+  </symbol>
+
+  <symbol id="orbit-mark" viewBox="0 0 48 48">
+    <path d="M16.8 12.0 C23.0 8.8 31.6 10.2 36.2 15.2 C40.8 20.2 40.0 28.6 35.0 34.0 C30.0 39.4 20.8 40.0 14.6 36.0 C8.4 32.0 7.8 23.8 11.4 18.0 C12.8 15.6 14.4 13.2 16.8 12.0 Z" style="fill:#f6dcd2;stroke:#c24a2e;stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke"/>
+    <path d="M20.0 16.0 C16.2 18.2 14.2 22.4 15.4 27.0 C16.6 31.6 20.8 34.2 25.4 34.1" style="fill:none;stroke:#c24a2e;stroke-width:.9;opacity:.28;stroke-linecap:round;vector-effect:non-scaling-stroke"/>
+    <path d="M5.5 30.5 C11.5 27.5 18.0 27.2 24.0 29.4 C30.0 31.6 36.8 30.4 42.5 25.5" style="fill:none;stroke:#c24a2e;stroke-width:1.2;opacity:.6;stroke-linecap:round;vector-effect:non-scaling-stroke"/>
+    <circle cx="8.0" cy="29.4" r="1.55" style="fill:#c24a2e;opacity:.75"/>
+    <circle cx="34.4" cy="16.2" r="1.5" style="fill:#c24a2e;opacity:.75"/>
+  </symbol>
+
+  <symbol id="orbit-mark-dark" viewBox="0 0 48 48">
+    <path d="M16.8 12.0 C23.0 8.8 31.6 10.2 36.2 15.2 C40.8 20.2 40.0 28.6 35.0 34.0 C30.0 39.4 20.8 40.0 14.6 36.0 C8.4 32.0 7.8 23.8 11.4 18.0 C12.8 15.6 14.4 13.2 16.8 12.0 Z" style="fill:#3a2520;stroke:#e0705a;stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke"/>
+    <path d="M20.0 16.0 C16.2 18.2 14.2 22.4 15.4 27.0 C16.6 31.6 20.8 34.2 25.4 34.1" style="fill:none;stroke:#e0705a;stroke-width:.9;opacity:.28;stroke-linecap:round;vector-effect:non-scaling-stroke"/>
+    <path d="M5.5 30.5 C11.5 27.5 18.0 27.2 24.0 29.4 C30.0 31.6 36.8 30.4 42.5 25.5" style="fill:none;stroke:#e0705a;stroke-width:1.2;opacity:.6;stroke-linecap:round;vector-effect:non-scaling-stroke"/>
+    <circle cx="8.0" cy="29.4" r="1.55" style="fill:#e0705a;opacity:.8"/>
+    <circle cx="34.4" cy="16.2" r="1.5" style="fill:#e0705a;opacity:.8"/>
+  </symbol>
+</svg>
+</body>
+</html>

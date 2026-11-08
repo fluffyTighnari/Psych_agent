@@ -72,7 +72,9 @@ def get_all_model_config():
     data = {
         "small": _public_model(GLOBAL_MODEL.small),
         "large": _public_model(GLOBAL_MODEL.large),
-        "chat": _public_model(GLOBAL_MODEL.chat)
+        "chat": _public_model(GLOBAL_MODEL.chat),
+        # 连接列表（脱敏）：前端用它渲染「模型来自哪个连接」
+        "connections": [c.to_dict(mask=True) for c in GLOBAL_MODEL.connections],
     }
     return resp(CODE_OK, "获取模型配置成功", data=data)
 
@@ -105,11 +107,9 @@ def update_model_config(req: ModelConfigReq):
     GLOBAL_MODEL._inject_env()
     # 写入json持久化，重启服务不丢失
     GLOBAL_MODEL.save()
-    # 重置各模块缓存的 LLM / Agent 实例，使新配置立即生效（无需重启）
-    from core.agent import reset_llm_cache as reset_agent_llm_cache
-    from core.tools import reset_llm_cache as reset_tools_llm_cache
-    reset_agent_llm_cache()
-    reset_tools_llm_cache()
+    # 统一重建全部组件（检索 / memory / RAG / 路由 Agent），使新配置立即生效（无需重启）
+    from core.infra.context import rebuild_app
+    rebuild_app()
     return resp(CODE_OK, "模型配置已更新并保存，立即生效")
 
 # ===================== 入参模型 =====================
@@ -203,6 +203,7 @@ def api_preprocess():
     from config.model_config import GLOBAL_MODEL, EMBEDDING_MODEL
     from config.path_config import KNOWLEDGE_DIR, DATA_DIR, VECTOR_DB_DIR, COLLECTION_NAME, BM25_PATH, META_DB_PATH
     from core.helper.BM25 import BM25TagIndexer
+    from core.helper.retrieval_config import BM25_B, BM25_FIELD_WEIGHTS, BM25_K1
     from core.loader.document_loader import DocumentLoader
     from core.embedding.embedding import EmbeddingModel
     from core.meta_db.knowledge_meta import KnowledgeMetaDB
@@ -246,8 +247,9 @@ def api_preprocess():
     indexer = BM25TagIndexer(
         documents=all_docs,
         bm25_path=BM25_PATH,
-        topic_weight=3,
-        keyword_weight=1
+        field_weights=BM25_FIELD_WEIGHTS,
+        k1=BM25_K1,
+        b=BM25_B,
     )
 
     # 写入即生效：刷新内存知识缓存，网页检索/知识库列表无需重启即可看到新数据
@@ -258,6 +260,14 @@ def api_preprocess():
         stage="preprocess",
         label="预处理阶段已完成",
         content={"knowledge_docs": len(KNOWLEDGE_CACHE.documents)}
+    )
+
+    # 必须显式返回统一响应体：无 return 会让 FastAPI 序列化成 null，
+    # 前端按 {code,msg,data} 解包时会因 null.code 崩溃。
+    return resp(
+        CODE_OK,
+        "预处理完成",
+        data={"knowledge_docs": len(KNOWLEDGE_CACHE.documents)},
     )
 
 class SaveDailyReq(BaseModel):

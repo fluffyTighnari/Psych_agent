@@ -1,9 +1,26 @@
+import re
 import sqlite3
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 
 from core.schema import Document
 from core.helper.trace_tracker import GLOBAL_TRACKER
+
+_DATE_RE = re.compile(r"^(\d{4})-(\d{1,2})-(\d{1,2})$")
+
+
+def _normalize_date(value):
+    """把 2026-7-11 规范成 2026-07-11；无法识别的格式原样返回。
+
+    日期以 TEXT 存储并参与 SQL 字符串比较，不补零会导致跨月误判
+    （例如 '2026-10-01' < '2026-9-01'）。
+    """
+    if not value:
+        return value
+    m = _DATE_RE.match(str(value).strip())
+    if not m:
+        return value
+    return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
 
 
 class KnowledgeMetaDB:
@@ -48,8 +65,32 @@ class KnowledgeMetaDB:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_doc_type ON knowledge_meta(doc_type)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_emotion ON knowledge_meta(primary_emotion)")
 
+        # 历史数据迁移：日期补零，保证日期区间比较正确
+        self._normalize_stored_dates(cursor)
+
         conn.commit()
         conn.close()
+
+    @staticmethod
+    def _normalize_stored_dates(cursor):
+        """把库中不补零的历史日期统一成 YYYY-MM-DD（幂等，无差异时不写库）。"""
+        rows = cursor.execute(
+            "SELECT doc_id, date FROM knowledge_meta WHERE date IS NOT NULL"
+        ).fetchall()
+        updates = []
+        for row in rows:
+            norm = _normalize_date(row["date"])
+            if norm != row["date"]:
+                updates.append((norm, row["doc_id"]))
+        if updates:
+            cursor.executemany(
+                "UPDATE knowledge_meta SET date = ? WHERE doc_id = ?", updates
+            )
+            GLOBAL_TRACKER.add_trace(
+                stage="meta_db",
+                label="日期格式规范化",
+                content={"updated": len(updates)}
+            )
 
     def insert_or_update(self, doc_meta: Dict[str, Any]):
         """单条：存在则更新，不存在插入"""
@@ -72,7 +113,7 @@ class KnowledgeMetaDB:
         data = (
             doc_meta["doc_id"],
             doc_meta["doc_type"],
-            doc_meta["date"],
+            _normalize_date(doc_meta["date"]),
             doc_meta["primary_emotion"],
             doc_meta["secondary_emotion"],
             doc_meta["emotion_intensity"],
@@ -143,7 +184,7 @@ class KnowledgeMetaDB:
             row = (
                 doc.doc_id,
                 doc.doc_type,
-                doc.date,
+                _normalize_date(doc.date),
                 emotion.get("primary"),
                 emotion.get("secondary"),
                 emotion.get("intensity"),
@@ -196,6 +237,12 @@ class KnowledgeMetaDB:
         if start_date and end_date:
             conditions.append("date BETWEEN ? AND ?")
             params.extend([start_date, end_date])
+        elif start_date:
+            conditions.append("date >= ?")
+            params.append(start_date)
+        elif end_date:
+            conditions.append("date <= ?")
+            params.append(end_date)
         if topic_like:
             or_conds = []
             for t in topic_like:

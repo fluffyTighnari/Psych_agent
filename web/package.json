@@ -1,0 +1,35 @@
+{
+  "name": "psych-journal-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "clean:dist": "node scripts/clean-dist.mjs",
+    "build": "npm run clean:dist && vue-tsc --noEmit && node scripts/build.mjs",
+    "build:fast": "npm run clean:dist && node scripts/build.mjs",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@fontsource-variable/noto-sans-sc": "^5.3.1",
+    "@fontsource-variable/noto-serif-sc": "^5.3.1",
+    "@fontsource/fraunces": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@lezer/highlight": "^1.2.5",
+    "codemirror": "^6.0.2",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "playwright": "^1.65.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vue-tsc": "^2.1.10"
+  }
+}

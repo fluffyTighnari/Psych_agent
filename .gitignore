@@ -1,49 +1,72 @@
-# ========== Python 虚拟环境 & 编译缓存 ==========
+# ============================================================
+# PsychAgent .gitignore
+# 原则：源码、文档、品牌资产、构建与部署文件入库；
+# 运行时数据、模型、缓存、日志、密钥、IDE/同步文件不入库。
+#
+# 明确保留（不要加入忽略规则）：
+#   Dockerfile
+#   docker-compose.yml
+#   .dockerignore
+#   requirements.txt
+#   *.bat
+# ============================================================
+
+# ---------- Python 虚拟环境 / 编译缓存 ----------
 .venv/
 venv/
 env/
 ENV/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
 *.py[cod]
 *$py.class
 .Python
+*.egg-info/
+.eggs/
 build/
-develop-eggs/
 dist_python/
+develop-eggs/
 downloads/
 eggs/
-.eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
-*.egg-info/
 .installed.cfg
 *.egg
 
-# ========== 日志、运行缓存 ==========
+# ---------- 日志 / 临时文件 / 测试产物 ----------
 logs/
 *.log
 *.trace
+*.tmp
+*.bak
+*.orig
+*.rej
+*.pid
 tmp/
 temp/
 .cache
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+test_output/
+dump/
+backup/
 
-# ========== 前端资源（仅保留打包dist源码，排除node依赖） ==========
+# ---------- 前端依赖与构建产物 ----------
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log
-# /frontend/dist 按需放开注释：若dist本地打包、服务器单独上传则忽略
-# frontend/dist/
+.pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
+web/dist/
+web/.dist-backup/
+web/.dist-fonts-backup/
+.vite/
 
-# ========== 项目本地数据（知识库、记忆、数据库大文件，不上git） ==========
+# ---------- 本地运行时数据（知识库/记忆/数据库/索引） ----------
 data/
 store/
 *.db
@@ -51,43 +74,41 @@ store/
 *.sqlite3
 *.db-journal
 *.pkl
-# md文章、记忆文件体积大，统一服务器维护，不提交仓库
 Daily_thoughts/
 Weekly_thoughts/
 vector_store/
 bm25_index/
 embedding_cache/
+.ipynb_checkpoints/
 
-# ========== 本地模型（HuggingFace 拉取，体积 GB 级，不入库） ==========
+# ---------- 本地模型 ----------
 models/
 *.gguf
 *.bin
 model_cache/
 
-# ========== IDE、系统隐藏文件 ==========
-# Windows
-Thumbs.db
-Desktop.ini
-# Mac
-.DS_Store
-._*
-# Visual Studio
+# ---------- IDE / 系统 / 同步工具 ----------
+.idea/
 .vs/
-# VSCode
 .vscode/
+*.iml
+*.iws
+*.ipr
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-# PyCharm
-.idea/
-*.iml
-*.iws
-*.out
+Thumbs.db
+Desktop.ini
+.DS_Store
+._*
+.claude/
+.cursor/
+.stfolder/
+.stignore
 
-# ========== 本地配置、密钥（关键！防止泄露api_key） ==========
-# 模板保留 config.template.json，真实配置忽略
+# ---------- 本地配置 / 密钥 ----------
 config/model_store.json
 config/local_config.json
 config/id_map.json
@@ -98,18 +119,9 @@ config/id_map.json
 api_key.txt
 secret.key
 
-# ========== AI 工具本地设置（不入库） ==========
-.claude/
-.cursor/
-
-# ========== 临时导出、测试文件 ==========
-*.tmp
-*.bak
-backup/
-test_output/
-dump/
-# ========== Syncthing / 自检产物 / 学习笔记 ==========
-.stfolder/
-.stignore
+# ---------- 设计 / 评测中间产物 ----------
+.creative-design/
 docs/_shots/
+docs/_rag_tmp/
+guide_eval/out*/
 RAG/
