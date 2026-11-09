@@ -64,6 +64,24 @@ function lookup(id: string, ctx: CitationContext): { kind: CitationKind; title: 
 }
 
 /**
+ * 无效引用标记。
+ *
+ * 实测发现模型会把 prompt 里的占位词原样塞进标记 —— 观察到真实输出 `[[cite:无]]`。
+ * 来源是 RAG prompt 里「用户主动引用的资料（可选；若为「无」则忽略）」这句：
+ * 模型把「无」当成了一个合法的 ID 抄了进去。同类还会出现「（无）」「未引用」「none」。
+ *
+ * 这些不是真实 ID，解析时必须整个丢弃 —— 否则界面上会出现一个
+ * 点了没反应、悬停显示「引用 · 无」的幽灵角标。
+ */
+const PLACEHOLDER_IDS = new Set(['无', '（无）', '(无)', '未引用', 'none', 'null', 'n/a', '-', '—'])
+
+export function isValidCiteId(id: string): boolean {
+  const v = (id || '').trim()
+  if (!v) return false
+  return !PLACEHOLDER_IDS.has(v.toLowerCase())
+}
+
+/**
  * 从一段回复里提取所有引用，按首次出现顺序编号。
  * 返回的 Map 供渲染时按 id 查序号。
  */
@@ -77,6 +95,7 @@ export function extractCitations(text: string, ctx: CitationContext): Map<string
     const kindMark = m[1]
     const id = m[2]
     if (!id || result.has(id)) continue
+    if (!isValidCiteId(id)) continue
 
     const { kind: resolvedKind, title } = lookup(id, ctx)
     const kind = kindMark === 'guide' ? 'reason' : resolvedKind
@@ -169,7 +188,13 @@ export function tokenizeInline(text: string, isFinal = true): TokenizeResult {
   while ((m = re.exec(text)) !== null) {
     const start = m.index
     if (start > cursor) tokens.push({ type: 'text', value: text.slice(cursor, start) })
-    tokens.push({ type: m[1] === 'guide' ? 'guide' : 'cite', id: m[2] ?? '' })
+    /*
+     * 占位符 ID（`[[cite:无]]`）整个丢弃，不产生 token：
+     * 它既不是真实引用，也不该以字面量形式留在正文里。
+     */
+    if (isValidCiteId(m[2] ?? '')) {
+      tokens.push({ type: m[1] === 'guide' ? 'guide' : 'cite', id: m[2] ?? '' })
+    }
     cursor = start + m[0].length
   }
 

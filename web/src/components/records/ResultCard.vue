@@ -180,7 +180,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
   padding: 1px 7px;
   border-radius: var(--r-sm);
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 
@@ -201,8 +201,9 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
 
 .rc__date {
   font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-tertiary);
+  /* 日期是扫读时最先找的信息，11.5px 三级灰偏糊；数字用 mono 保持对位没问题 */
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -224,7 +225,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
 .rc__chip {
   padding: 1px 7px;
   border-radius: var(--r-pill);
-  font-size: 12px;
+  font-size: var(--fs-2xs);
 }
 
 .rc__chip--topic {
@@ -245,7 +246,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
 /* ---------- 详情 ---------- */
 .rc__detail h5 {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--fs-2xs);
   font-weight: var(--fw-medium);
   color: var(--text-tertiary);
   letter-spacing: 0.3px;
@@ -264,7 +265,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
 
 .rc__path {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
   word-break: break-all;
 }
@@ -296,7 +297,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
 
 .rc__dlg-role {
   display: block;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   opacity: 0.65;
   margin-bottom: 1px;
 }
@@ -326,7 +327,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--fs-2xs);
   cursor: pointer;
   transition:
     background var(--dur-fast) var(--ease-out),

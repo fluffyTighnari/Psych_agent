@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="100%" height="100%">
+  <defs>
+    <!-- 灯身渐变 -->
+    <linearGradient id="purpleBody" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A78BFA" />
+      <stop offset="35%" stop-color="#DDD6FE" />
+      <stop offset="65%" stop-color="#F3E8FF" />
+      <stop offset="100%" stop-color="#C4B5FD" />
+    </linearGradient>
+    <!-- 金属渐变 -->
+    <linearGradient id="purpleMetal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#C4B5FD" />
+      <stop offset="100%" stop-color="#A78BFA" />
+    </linearGradient>
+    <!-- 火焰光晕 -->
+    <radialGradient id="flameGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FDE68A" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#F59E0B" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- 居中平移 -->
+  <g transform="translate(150, 150)">
+    <!-- 提灯底座 -->
+    <rect x="-28" y="50" width="56" height="8" rx="4" fill="url(#purpleMetal)" />
+    <rect x="-22" y="58" width="44" height="5" rx="2" fill="#8B5CF6" opacity="0.8" />
+    
+    <!-- 提灯提手 -->
+    <path d="M -18,-30 C -18,-55 18,-55 18,-30" fill="none" stroke="url(#purpleMetal)" stroke-width="4" stroke-linecap="round" />
+    <circle cx="0" cy="-52" r="4" fill="#A78BFA" />
+    <circle cx="0" cy="-52" r="2" fill="#F3E8FF" opacity="0.8" />
+
+    <!-- 提灯顶部盖子 -->
+    <path d="M -22,-30 L 22,-30 L 26,-22 L -26,-22 Z" fill="url(#purpleMetal)" />
+    <line x1="-26" y1="-22" x2="26" y2="-22" stroke="#F3E8FF" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+
+    <!-- 提灯灯身 -->
+    <path d="M -26,-22 L -26,45 L -16,45 L -16,-22 Z" fill="#A78BFA" />
+    <path d="M -16,-22 L -16,45 L 10,45 L 10,-22 Z" fill="url(#purpleBody)" />
+    <path d="M 10,-22 L 10,45 L 26,45 L 26,-22 Z" fill="#C4B5FD" />
+    
+    <!-- 灯身轮廓线 -->
+    <path d="M -26,-22 L 26,-22 L 26,45 L -26,45 Z" fill="none" stroke="#8B5CF6" stroke-width="2.5" stroke-linejoin="round" />
+    
+    <!-- 灯身底座装饰 -->
+    <line x1="-26" y1="40" x2="26" y2="40" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" opacity="0.8" />
+
+    <!-- 内部暖光背景 -->
+    <ellipse cx="0" cy="10" rx="18" ry="22" fill="#FDE68A" opacity="0.25" />
+
+    <!-- 火焰光晕与火焰 -->
+    <circle cx="0" cy="8" r="25" fill="url(#flameGlow)" opacity="0.6" />
+    <path d="M 0,-8 Q -9,3 -5,13 Q 0,20 0,20 Q 0,20 5,13 Q 9,3 0,-8 Z" fill="#F59E0B" />
+    <path d="M 0,-2 Q -5,6 -3,12 Q 0,16 0,16 Q 0,16 3,12 Q 5,6 0,-2 Z" fill="#FBBF24" />
+    <path d="M 0,4 Q -2,8 -1,11 Q 0,13 0,13 Q 0,13 1,11 Q 2,8 0,4 Z" fill="#FEF3C7" />
+
+    <!-- 金属框架 -->
+    <line x1="-26" y1="-22" x2="-26" y2="45" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" />
+    <line x1="26" y1="-22" x2="26" y2="45" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" />
+    <line x1="0" y1="-22" x2="0" y2="45" stroke="#C4B5FD" stroke-width="1.5" stroke-linecap="round" opacity="0.5" />
+
+    <!-- 投射光点 -->
+    <circle cx="40" cy="0" r="2" fill="#DDD6FE" opacity="0.8" />
+    <circle cx="50" cy="15" r="1.5" fill="#DDD6FE" opacity="0.6" />
+    <circle cx="35" cy="25" r="2" fill="#DDD6FE" opacity="0.7" />
+  </g>
+</svg>

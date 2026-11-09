@@ -309,38 +309,9 @@ const tree = computed(() => renderBlocks(blocks.value))
   }
 }
 
-/* 用户气泡里是深底，强调色需要反向 */
-:global(.msg--user) .rt :deep(.rt__strong),
-:global(.msg--user) .rt :deep(.rt__h) {
-  color: var(--text-on-dark);
-}
-
-:global(.msg--user) .rt :deep(.rt__quote) {
-  color: var(--accent-soft);
-}
-
-:global(.msg--user) .rt :deep(.rt__code) {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--text-on-dark);
-}
-
-:global(.msg--user) .rt :deep(.rt__li::marker),
-:global(.msg--user) .rt :deep(.rt__list--ul .rt__li)::before {
-  color: var(--accent-soft);
-  background-color: var(--accent-soft);
-}
-
-:global(.msg--user) .rt :deep(.rt__bq) {
-  border-left-color: var(--accent-soft);
-  color: var(--text-on-dark);
-}
-
-:global(.msg--user) .rt :deep(.rt__pre) {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-:global(.msg--user) .rt :deep(.rt__pre-code) {
-  color: var(--text-on-dark);
-}
+/*
+ * 用户气泡与页面同底后，不再需要任何按说话人区分的富文本配色 ——
+ * 双方正文都是纸上的墨，统一走默认令牌。
+ * 这里曾有三轮为"深底 → 沉纸底"调过的反向/半透明配色，已全部移除。
+ */
 </style>

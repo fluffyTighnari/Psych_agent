@@ -175,11 +175,16 @@ async function refresh() {
   background: var(--warning);
 }
 
+/*
+ * 「共 8 条 · 版本 16 · 仅累积新增…」这类说明是给人读的中文句子，
+ * 不是 ID 也不是表格数据 —— 塞进等宽栈、还压到 12.5px 就成了一层灰雾。
+ * 改回正文字体，并与页头副标题（「检索你的知识文档与历史会话记忆」）同字号。
+ */
 .hint {
   margin: var(--sp-3) 0 var(--sp-2);
-  font-family: var(--font-mono);
-  font-size: var(--fs-2xs);
-  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
 }
 
 .trace-list {

@@ -43,6 +43,13 @@
   --surface-sunken: var(--c-paper-deep);
   --surface-overlay: var(--c-paper-ink);
   --surface-inverse: var(--c-ink-900);
+  /*
+   * 用户消息气泡：淡黄纸块。
+   * 只求"能看出这是一句自己说的话"，不求抢眼 ——
+   * 比页面底略暖、略深一档，配一道几乎看不见的边。
+   */
+  --surface-user: #f6ecd0;
+  --border-user: #ecdcb8;
   --surface-accent-ghost: rgba(194, 74, 46, 0.1);
   --surface-danger-ghost: rgba(180, 55, 46, 0.06);
   --surface-warning-ghost: rgba(176, 138, 76, 0.12);
@@ -85,10 +92,14 @@
 
   /* ---------- 字号：7 级 ----------
      硬规则：< 13px 只允许时间戳 / ID / 徽章；
-     任何连续阅读内容最小 14px（见 docs/frontend_ux_refinement_plan.md §3.1）。 */
-  --fs-2xs: 12.5px;
-  --fs-xs: 13px;
-  --fs-sm: 14px;
+     任何连续阅读内容最小 14px（见 docs/frontend_ux_refinement_plan.md §3.1）。
+
+     2026-11 再上调一档：12.5px 的中文（尤其中性灰）在浅米底上笔画过细，
+     远看是一层灰雾。根因不只是字号——很多地方还绕过令牌写死了 9.5–12px，
+     并且中文落进了 mono 栈（见 --font-mono 注释）。三处一起修才有效果。 */
+  --fs-2xs: 13px;
+  --fs-xs: 13.5px;
+  --fs-sm: 14.5px;
   --fs-base: 15.5px;
   --fs-md: 18px;
   --fs-lg: 23px;
@@ -150,7 +161,16 @@
      字体未就绪时用 fallback 渲染，尺寸与目标字体接近，替换时不跳动。 */
   --font-serif: 'Fraunces', 'Noto Serif SC Variable', 'Noto Serif SC Fallback', 'Songti SC', serif;
   --font-sans: 'Noto Sans SC Variable', 'Noto Sans SC Fallback', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  /*
+   * 等宽只用于英文/数字/ID，但项目里多处把中文放进了 mono 元素
+   * （「0 字」「约 1 分钟」「共 8 条 · 版本 16」）。
+   * JetBrains Mono 没有汉字字形，缺失的字符会落到最后的 `monospace` 兜底 ——
+   * 那是系统默认的等宽中文字体，笔画细、字重轻，正是"小字尖锐看不清"的来源。
+   * 在 mono 栈里插入无衬线 CJK，让中文回落到与正文一致的字体；
+   * 英数仍由 JetBrains Mono 渲染，等宽对齐全然保留。
+   */
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas,
+    'Noto Sans SC Variable', 'Noto Sans SC Fallback', 'PingFang SC', 'Microsoft YaHei', monospace;
 
   /* ---------- 布局 ---------- */
   --rail-w: 224px;

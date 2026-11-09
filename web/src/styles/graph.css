@@ -301,7 +301,8 @@
 /* ---------- 标签 ---------- */
 .glabel {
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  /* SVG 里的字号不参与 rem 缩放，写死像素；低于 12px 的汉字会发虚 */
+  font-size: var(--fs-2xs);
   font-weight: 500;
   fill: var(--text-primary);
   text-anchor: middle;
@@ -315,15 +316,21 @@
   transition: opacity var(--dur-base) var(--ease-out);
 }
 
+/*
+ * 标签统一用无衬线。
+ *
+ * 会话曾用衬线、推理曾用等宽 10.5px —— 结果是同一张图里三种字体，
+ * 推理项在一堆无衬线标签中显得又细又小，像没加载好字体。
+ * 层级差异交给字号与字重，不交给字体系。
+ */
 .glabel--session {
-  font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: calc(var(--fs-2xs) + 1px);
   font-weight: 600;
 }
 
 .glabel--reason {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
+  font-weight: 500;
 }
 
 .glabel.is-hidden {

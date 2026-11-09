@@ -242,7 +242,7 @@ const RELATION_LABEL: Record<string, string> = {
 
 .ins__id {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
   word-break: break-all;
 }
@@ -280,7 +280,7 @@ const RELATION_LABEL: Record<string, string> = {
 
 .ins__mono {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
   word-break: break-all;
 }
@@ -350,7 +350,7 @@ const RELATION_LABEL: Record<string, string> = {
   margin-left: auto;
   flex: 0 0 auto;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--fs-2xs);
   color: var(--text-disabled);
 }
 

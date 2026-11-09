@@ -46,7 +46,9 @@ copy .env.example .env
 - **通义千问 DashScope（可选）**：到 [dashscope.console.aliyun.com/apiKey](https://dashscope.console.aliyun.com/apiKey) 创建，填 `QWEN_API_KEY` 与 `QWEN_BASE_URL`（`https://dashscope.aliyuncs.com/v1`）
 - **HuggingFace Token（可选）**：拉取受限模型时需要，到 [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) 创建，填 `HF_TOKEN`
 
-也可以在**网页端改模型**：启动后打开 `http://127.0.0.1:8000` 的模型配置页，直接填 api_key / base_url，保存后立即生效（写入 `config/model_store.json`，该文件已 gitignore，不会入库）。
+也可以在**网页端改模型**：启动后打开 `http://127.0.0.1:8000` 的模型配置页，直接填 api_key / base_url，保存后立即生效。
+
+> **API Key 不会持久化**：网页端填写的 key 只保存在当前后端进程内存中，`config/model_store.json` 里的 `api_key` 字段始终被清空；服务重启后会按 `base_url` 的供应商前缀从 `.env` 重新注入。需要长期使用，请把 key 写进 `.env`，不要只依赖网页端。
 
 ### 4. 拉取本地模型
 
@@ -96,7 +98,7 @@ docker compose up -d --build
 
 ## 模型配置说明
 
-系统有三个模型槽位（网页端模型配置页可改，保存即生效并持久化到 `config/model_store.json`）：
+系统有三个模型槽位。网页端模型配置页可改，保存后立即生效；**非密钥字段**（`driver`、`ollama_name`、`api_model_name`、`base_url`、`temperature` 及连接结构）会持久化到 `config/model_store.json`，**`api_key` 不落盘**：
 
 | 槽位 | 用途 | 默认 |
 |---|---|---|
@@ -104,7 +106,15 @@ docker compose up -d --build
 | `large` | 会话总结 / RAG 生成 | qwen3.5:9b-128k 或 DeepSeek API |
 | `chat` | 对话生成 / 引导推理 | DeepSeek API |
 
-每个槽位 `driver=ollama` 时使用 `ollama_name`（本地 Ollama 模型名）；`driver=api` 时使用 `api_model_name` + `api_key` / `base_url`（云端 API）。
+每个槽位 `driver=ollama` 时使用 `ollama_name`（本地 Ollama 模型名）；`driver=api` 时使用 `api_model_name` + `api_key` / `base_url`（云端 API）。`api_key` 在运行时从 `.env` 注入，不写入 JSON；修改 `base_url` 后，程序会按 `dashscope/qwen`、`openai`、其他（默认 DeepSeek）推断读取哪个 `*_API_KEY`。
+
+| 数据 | 存储位置 | 是否持久化 | 是否加密 |
+|---|---|---|---|
+| `api_key` | 后端进程内存；启动时从 `.env` 注入 | 否（直接写 `.env` 才会长期保留） | 否 |
+| `driver` / 模型名 / `base_url` / `temperature` | `config/model_store.json` | 是 | 否（明文 JSON） |
+| 连接列表 | `config/model_store.json`，其中 `api_key` 字段为空 | 是 | 否 |
+
+**结论：当前没有把 API Key 写入 SQLite 或加密数据库。** 网页端保存的 key 只是内存态；`GlobalModel.save()` 在写 `config/model_store.json` 前会强制把 `api_key` 置空。服务重启后，key 从 `.env` 读取；`.env` 为空则对应 API 调用会缺少 key。
 
 ## 引导型咨询评测
 
@@ -129,6 +139,8 @@ python -m guide_eval.run --models deepseek-chat,qwen-plus --limit-cases 8
 ## 安全与隐私
 
 - `.env`、`config/model_store.json`、`config/id_map.json` 均已被 `.gitignore` 排除，**不要**用 `git add -f` 强制加入
+- **API Key 不在数据库里**：项目没有把 key 写入 SQLite，也没有加密数据库；`config/model_store.json` 是明文 JSON，且其中的 `api_key` 会被 `GlobalModel.save()` 强制清空
+- 网页端填写的 key 只在本进程内存有效；服务/容器重启后从 `.env` 重新读取。长期配置请写 `.env`，并妥善保护该文件
 - `data/`（个人日记）、`models/`（模型文件）、`store/`（运行数据）一律不入库
 - 若 API Key 曾经泄露（例如误提交进 git 历史），请立即到对应平台**轮换密钥**
 
@@ -138,9 +150,10 @@ python -m guide_eval.run --models deepseek-chat,qwen-plus --limit-cases 8
 - **`model 'xxx' not found`**：Ollama 里没有该模型，执行 `ollama pull <模型名>`，或在网页模型配置里换成已安装的模型
 - **检索不到内容**：先确认执行过 `python preprocess.py`，且 `data/notes/` 下有日记/复盘文件
 - **改模型后不生效**：配置保存后会重置模型缓存，若仍未生效请重启服务
+
 ## Docker 部署（可选）
 
-项目根已提供 `Dockerfile` / `docker-compose.yml` / `.dockerignore`，可一键起后端 + Ollama：
+项目根已提供 `Dockerfile` / `docker-compose.yml` / `.dockerignore`，可一键起后端（复用宿主机 Ollama）：
 
 ```bash
 # 前置：.env 已配置；本地模型已拉取到 ./models（见上文「拉取本地模型」）
@@ -150,7 +163,8 @@ docker compose up -d --build
 
 - 访问 `http://localhost:8000`
 - 容器复用宿主机的 `./models`、`./data`、`./store` 挂载卷，无需重新下载模型/重新预处理
-- 容器内通过服务名访问 Ollama（`OLLAMA_HOST=http://ollama:11434`，代码已支持该环境变量；本地非 Docker 运行不受影响）
+- 容器通过 `env_file: .env` 注入 API Key；网页端临时填写的 key 在容器重启后不会保留
+- 容器通过 `host.docker.internal:11434` 访问宿主机 Ollama（compose 已设置 `OLLAMA_HOST=http://host.docker.internal:11434`），不是 compose 内置的 Ollama 服务
 - 停止：`docker compose down`
 
-> 注意：embedding/reranker 模型需先在本机 `./models/` 就绪再启动容器；qwen3.5:9b-128k 等对话模型由 compose 内的 Ollama 服务按需拉取（首次调用会下载，耗时取决于网络）。
+> 注意：embedding/reranker 模型需先在本机 `./models/` 就绪再启动容器；qwen3.5:9b-128k 等对话模型由宿主机 Ollama 提供，需先在宿主机 `ollama pull`；首次调用会下载，耗时取决于网络。

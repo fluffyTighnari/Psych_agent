@@ -500,7 +500,7 @@ onBeforeUnmount(() => {
   padding: 1px 8px;
   border-radius: var(--r-sm);
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: var(--fs-2xs);
 }
 
 .peek__badge--daily {
@@ -520,7 +520,7 @@ onBeforeUnmount(() => {
 
 .peek__date {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
 }
 
@@ -545,7 +545,7 @@ onBeforeUnmount(() => {
 .peek__chip {
   padding: 1px 8px;
   border-radius: var(--r-pill);
-  font-size: 12px;
+  font-size: var(--fs-2xs);
 }
 
 .peek__chip--topic {
@@ -577,7 +577,7 @@ onBeforeUnmount(() => {
 
 .peek__h3 {
   font-family: var(--font-sans);
-  font-size: 12.5px;
+  font-size: var(--fs-2xs);
   font-weight: var(--fw-medium);
   letter-spacing: 0.4px;
   color: var(--text-tertiary);
@@ -609,7 +609,7 @@ onBeforeUnmount(() => {
 
 .peek__mono {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
   word-break: break-all;
 }
@@ -619,7 +619,7 @@ onBeforeUnmount(() => {
   padding-top: var(--sp-3);
   border-top: 1px dashed var(--border-soft);
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: var(--fs-2xs);
   color: var(--text-disabled);
   word-break: break-all;
 }
@@ -651,7 +651,7 @@ onBeforeUnmount(() => {
 
 .peek__dlg-role {
   display: block;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   opacity: 0.65;
   margin-bottom: 2px;
 }

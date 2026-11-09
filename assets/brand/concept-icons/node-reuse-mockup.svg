@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600">
+  <rect width="1200" height="600" fill="#F7F2E8"/>
+
+  <text x="600" y="62" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="28" font-weight="700" fill="#2A231C">原图直接复用 · 节点试排</text>
+  <text x="600" y="92" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="13" fill="#8A7F6D">300×300 原 SVG，仅调 viewBox 留边；路径、渐变、比例未改</text>
+
+  <path d="M 312 258 Q 430 232 538 258" fill="none" stroke="#D8CFC0" stroke-width="1.5" stroke-dasharray="3 7"/>
+  <path d="M 662 258 Q 780 232 888 258" fill="none" stroke="#D8CFC0" stroke-width="1.5" stroke-dasharray="3 7"/>
+
+  <circle cx="250" cy="258" r="62" fill="#F3F7F2" stroke="#A7D3BA" stroke-width="1.5"/>
+  <image href="node-reuse-knowledge.png" x="188" y="196" width="124" height="124"/>
+  <text x="250" y="356" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="16" fill="#2A231C">知识</text>
+
+  <circle cx="600" cy="258" r="62" fill="#FFF8E8" stroke="#E8B74A" stroke-width="1.5"/>
+  <image href="node-reuse-memory.png" x="538" y="196" width="124" height="124"/>
+  <text x="600" y="356" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="16" fill="#2A231C">记忆</text>
+
+  <circle cx="950" cy="258" r="62" fill="#F6F2FC" stroke="#C4B5FD" stroke-width="1.5"/>
+  <image href="node-reuse-guidance.png" x="888" y="196" width="124" height="124"/>
+  <text x="950" y="356" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="16" fill="#2A231C">引导</text>
+
+  <text x="600" y="430" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="12" fill="#8A7F6D">↓ 48px 设计坐标（知识约 98.6% / 引导约 94.5% / 记忆约 89.8%）</text>
+
+  <line x1="120" y1="470" x2="1080" y2="470" stroke="#E6DDCE" stroke-width="1"/>
+
+  <image href="node-reuse-knowledge.png" x="276" y="486" width="48" height="48"/>
+  <text x="300" y="550" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="12" fill="#5F5749">知识 · 48px</text>
+
+  <image href="node-reuse-memory.png" x="576" y="486" width="48" height="48"/>
+  <text x="600" y="550" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="12" fill="#5F5749">记忆 · 48px</text>
+
+  <image href="node-reuse-guidance.png" x="876" y="486" width="48" height="48"/>
+  <text x="900" y="550" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="12" fill="#5F5749">引导 · 48px</text>
+
+  <text x="600" y="582" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="11" fill="#A79B88">透明底 PNG 512×512 · 圆形底仅样张载体，SVG 本身无背景 · 知识 +10%，引导 +5%，记忆保持 90%</text>
+</svg>

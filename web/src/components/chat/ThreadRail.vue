@@ -62,13 +62,40 @@ const hoveredLabel = computed(() => {
   const item = items.value.find((i) => i.turn.id === hoveredId.value)
   return item?.label ?? ''
 })
+
+/**
+ * hover 摘要的垂直位置：跟着被指的刻度走，而不是钉在轨道顶部。
+ *
+ * 原先浮层固定 `top: --sp-2`，鼠标停在第 12 个刻度上，摘要却出现在最上面，
+ * 中间隔着十几行 —— 完全看不出这条摘要对应哪一点。
+ * 现在取刻度中心相对轨道的偏移，并把浮层垂直居中到那个位置。
+ */
+const railRef = ref<HTMLElement | null>(null)
+const hoveredTop = ref(0)
+
+function showTip(turnId: string, e: Event) {
+  hoveredId.value = turnId
+  const railEl = railRef.value
+  const markEl = e.currentTarget as HTMLElement | null
+  if (!railEl || !markEl) return
+  const mr = markEl.getBoundingClientRect()
+  const rr = railEl.getBoundingClientRect()
+  const center = mr.top - rr.top + mr.height / 2
+  // 夹进轨道范围，避免首尾刻度时浮层跑出可视区
+  hoveredTop.value = Math.min(Math.max(center, 28), Math.max(28, rr.height - 28))
+}
 </script>
 
 <template>
-  <div v-if="items.length" class="rail-ticks" role="navigation" aria-label="会话内导航">
-    <!-- hover 摘要浮层：固定在轨道左侧，不随刻度位置跳动 -->
+  <div v-if="items.length" ref="railRef" class="rail-ticks" role="navigation" aria-label="会话内导航">
+    <!-- hover 摘要浮层：垂直跟随被指的刻度 -->
     <Transition name="tip">
-      <div v-if="hoveredId && hoveredLabel" class="rail-ticks__tip" role="tooltip">
+      <div
+        v-if="hoveredId && hoveredLabel"
+        class="rail-ticks__tip"
+        :style="{ top: `${hoveredTop}px` }"
+        role="tooltip"
+      >
         {{ hoveredLabel }}
       </div>
     </Transition>
@@ -101,9 +128,9 @@ const hoveredLabel = computed(() => {
           :aria-label="`跳到第 ${i + 1} 轮：${item.label}`"
           :aria-current="item.turn.id === activeId ? 'true' : undefined"
           @click="emit('jump', item.turn.id)"
-          @mouseenter="hoveredId = item.turn.id"
+          @mouseenter="showTip(item.turn.id, $event)"
           @mouseleave="hoveredId = null"
-          @focus="hoveredId = item.turn.id"
+          @focus="showTip(item.turn.id, $event)"
           @blur="hoveredId = null"
         >
           <span class="mark__shape" aria-hidden="true"></span>
@@ -131,16 +158,17 @@ const hoveredLabel = computed(() => {
 /*
  * hover 摘要浮层。
  *
- * 关键约束：轨道容器只有 34px 宽，浮层必须**向左自由展开**而不被父级裁切。
- * 之前用 right: calc(100% + 2px) + max-width，父级又没设 overflow: visible，
- * 结果浮层被压成一条窄竖条，一行只剩两个字。
- *
- * 现在：明确指定宽度下限、允许换行、父级 overflow: visible。
+ * 两条约束：
+ * ① 轨道容器只有 34px 宽，浮层必须**向左自由展开**而不被父级裁切
+ *    （父级 overflow: visible，浮层给 min-width 并可换行）。
+ * ② 垂直位置必须跟着被指的刻度走。原先固定 top: --sp-2，
+ *    停在第十二个刻度上摘要却出现在最上面，隔了十几行，看不出对应关系。
+ *    现在 top 由 JS 写入刻度中心偏移，这里 translateY(-50%) 居中到刻度上。
  */
 .rail-ticks__tip {
   position: absolute;
   right: calc(100% + 8px);
-  top: var(--sp-2);
+  transform: translateY(-50%);
   width: max-content;
   min-width: 140px;
   max-width: 260px;

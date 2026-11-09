@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
-import NodeGlyph from '@/components/graph/NodeGlyph.vue'
 import { GraphEngine } from '@/core/graph/engine'
 import { useGraphStore } from '@/stores/graph'
 import type { GraphNode } from '@/core/api/types'
@@ -120,12 +119,12 @@ const filters: { key: GraphNode['type'] | 'all'; label: string }[] = [
   { key: 'reason', label: '推理' },
 ]
 
-/** 图例和画布共用 glyphs.ts 的几何，避免两套图标走样 */
-const legend: { type: GraphNode['type']; label: string }[] = [
-  { type: 'session', label: '会话' },
-  { type: 'memory', label: '记忆' },
-  { type: 'document', label: '文档' },
-  { type: 'reason', label: '推理' },
+/** 图例：纯色圆点，颜色取自对应节点图案的主色 */
+const legend: { type: GraphNode['type']; label: string; color: string }[] = [
+  { type: 'session', label: '会话', color: '#F2766B' },
+  { type: 'memory', label: '记忆', color: '#F59E0B' },
+  { type: 'document', label: '文档', color: '#10B981' },
+  { type: 'reason', label: '推理', color: '#8B5CF6' },
 ]
 </script>
 
@@ -223,7 +222,11 @@ const legend: { type: GraphNode['type']; label: string }[] = [
     <div class="gc__legend">
       <div class="gc__legend-items">
         <span v-for="item in legend" :key="item.type" class="gc__legend-item">
-          <NodeGlyph :type="item.type" :size="14" />
+          <span
+            class="gc__legend-dot"
+            :style="{ backgroundColor: item.color }"
+            aria-hidden="true"
+          ></span>
           {{ item.label }}
         </span>
       </div>
@@ -360,7 +363,7 @@ const legend: { type: GraphNode['type']; label: string }[] = [
 
 .gc__tip-id {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-disabled);
   word-break: break-all;
 }
@@ -417,7 +420,7 @@ const legend: { type: GraphNode['type']; label: string }[] = [
   left: var(--sp-2);
   bottom: var(--sp-2);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-disabled);
   pointer-events: none;
 }
@@ -448,6 +451,14 @@ const legend: { type: GraphNode['type']; label: string }[] = [
   color: var(--text-secondary);
 }
 
+.gc__legend-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
 .gc__filters {
   display: flex;
   gap: 3px;
@@ -458,8 +469,9 @@ const legend: { type: GraphNode['type']; label: string }[] = [
   border-radius: var(--r-pill);
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-tertiary);
-  font-size: 10.5px;
+  color: var(--text-secondary);
+  /* 中文筛选标签，10.5px 太糊；与其它小标签统一到 --fs-2xs */
+  font-size: var(--fs-2xs);
   cursor: pointer;
   transition:
     background var(--dur-fast) var(--ease-out),

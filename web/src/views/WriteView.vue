@@ -457,15 +457,20 @@ function onSubmitShortcut() {
 }
 
 /* ---------- 元信息 ---------- */
+/*
+ * 「9 字 · 约 1 分钟 · 填写 2/3」是可读的中文状态句，不是 ID 或表格数据。
+ * 原先整条塞进等宽栈 + 12.5px 三级灰，是这一页最难看清的一行。
+ * 改用正文字体、次要色，与页头副标题同档；纯数字仍走 .tabular 保持对位。
+ */
 .meta-bar {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
   flex-wrap: wrap;
   margin: var(--sp-3) 0 var(--sp-4);
-  font-family: var(--font-mono);
-  font-size: var(--fs-2xs);
-  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
   flex: 0 0 auto;
 }
 
@@ -612,7 +617,7 @@ function onSubmitShortcut() {
   border: 1px dashed var(--border);
   background: transparent;
   color: var(--accent-deep);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out);
 }

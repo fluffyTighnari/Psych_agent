@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 48 48" role="img" aria-label="知识节点">
+  <defs>
+    <linearGradient id="featherDark" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+    <linearGradient id="featherLight" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#6EE7B7"/>
+      <stop offset="1" stop-color="#D1FAE5"/>
+    </linearGradient>
+    <linearGradient id="bottleBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#7DD3FC"/>
+    </linearGradient>
+    <linearGradient id="bottleLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#BAE6FD"/>
+      <stop offset="1" stop-color="#E0F2FE"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="24" cy="38" r="10" fill="#BAE6FD" opacity="0.16" stroke="none"/>
+    <path d="M24 33.5 C19.2 27.5 19.3 17.5 23.2 6.2 L24 33.5 Z" fill="url(#featherDark)"/>
+    <path d="M24 33.5 C28.8 27.5 28.7 17.5 24.8 6.2 L24 33.5 Z" fill="url(#featherLight)"/>
+    <path d="M24 33 L24 7" stroke="#D1FAE5" stroke-width="0.8"/>
+    <path d="M23.8 26 L20.2 23.2 M23.7 22 L19.6 19.2 M23.8 18 L20.8 15.3 M23.9 14 L22 11.5" stroke="#D1FAE5" stroke-width="0.65" opacity="0.85"/>
+    <path d="M24.2 26 L27.8 23.2 M24.3 22 L28.4 19.2 M24.2 18 L27.2 15.3 M24.1 14 L26 11.5" stroke="#D1FAE5" stroke-width="0.65" opacity="0.85"/>
+    <path d="M24 7 C23.1 5.4 23.5 4.1 24.6 3.5 C25.5 4.6 25.3 5.7 24 7 Z" fill="#34D399"/>
+    <path d="M12.3 34 C10.5 35 9.8 36.7 9.8 38.8 L9.8 41 C9.8 43.3 11.8 44.7 14.2 44.7 L33.8 44.7 C36.2 44.7 38.2 43.3 38.2 41 L38.2 38.8 C38.2 36.7 37.5 35 35.7 34 Z" fill="url(#bottleBlue)" stroke="#38BDF8" stroke-width="0.7"/>
+    <path d="M13.6 35.2 C12 36 11.4 37.4 11.4 39.1 L11.4 41 C11.4 42.7 12.8 43.5 14.5 43.5 L33.5 43.5 C35.2 43.5 36.6 42.7 36.6 41 L36.6 39.1 C36.6 37.4 36 36 34.4 35.2 Z" fill="url(#bottleLight)"/>
+    <rect x="18" y="28.7" width="12" height="5.6" rx="1.5" fill="#7DD3FC" stroke="#38BDF8" stroke-width="0.55"/>
+    <rect x="17" y="26.6" width="14" height="2.4" rx="1.1" fill="#38BDF8"/>
+    <path d="M12.5 40.4 L35.5 40.4" stroke="#E0F2FE" stroke-width="0.9" opacity="0.8"/>
+    <path d="M13.2 38.3 C13.2 41 14.1 42.5 15.8 42.8" stroke="#FFFFFF" stroke-width="1.1" opacity="0.6"/>
+  </g>
+</svg>

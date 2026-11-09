@@ -40,10 +40,10 @@ body {
 
 /*
  * 深色背景区域保留 antialiased：深底上的次像素渲染会出彩边，
- * 这些区域（用户气泡、Toast、tooltip、深色徽章）需要灰度抗锯齿。
+ * 这些区域（Toast、tooltip、深色徽章）需要灰度抗锯齿。
+ * 用户气泡曾在这条里，但它现在已改为浅纸底，不再适用。
  */
 .on-dark,
-.msg--user .msg__bubble,
 .toast,
 .gc__tip,
 .graph-tooltip {

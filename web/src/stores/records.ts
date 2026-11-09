@@ -37,6 +37,24 @@ export type RecordsTab = 'knowledge' | 'memory'
 export type KnowledgeMode = 'meta' | 'text' | 'preprocess'
 export type MemoryMode = 'filter' | 'vector'
 
+/**
+ * 每条检索链路各自一份状态。
+ *
+ * 知识文档与历史记忆是两条独立的检索路径（不同的后端接口、不同的可用字段），
+ * 但它们原先共用 filter / searched / results 一份状态：
+ *   - 在知识文档里筛过一轮，切到记忆页，筛选条件还留着（语义并不通用）；
+ *   - 切回来时 searched 已被重置，「已按条件筛选」标识消失，看起来像从没检索过。
+ * 现在按 tab 各存一份，互不影响。
+ */
+interface TabState {
+  filter: RecordsFilter
+  vectorQuery: string
+  searched: boolean
+  /** 该 tab 上一次的检索结果；null 表示还没检索过，回落到全量列表 */
+  results: (Document | Memory)[] | null
+  error: string | null
+}
+
 export interface RecordsFilter {
   docType: string
   startDate: string
@@ -65,19 +83,64 @@ export const useRecordsStore = defineStore('records', () => {
   const knowledgeMode = ref<KnowledgeMode>('meta')
   const memoryMode = ref<MemoryMode>('filter')
 
-  const filter = ref<RecordsFilter>(emptyFilter())
-  const vectorQuery = ref('')
+  function emptyTabState(): TabState {
+    return { filter: emptyFilter(), vectorQuery: '', searched: false, results: null, error: null }
+  }
+
+  /** 两个 tab 各自的状态 */
+  const states = ref<Record<RecordsTab, TabState>>({
+    knowledge: emptyTabState(),
+    memory: emptyTabState(),
+  })
+
+  /** 当前 tab 的状态（写入用） */
+  const cur = computed(() => states.value[tab.value])
+
+  /*
+   * 下面这些保持对外形态不变（视图层用 records.filter.xxx 双向绑定），
+   * 内部改成读写"当前 tab 的那一份"。
+   */
+  const filter = computed({
+    get: () => cur.value.filter,
+    set: (v: RecordsFilter) => {
+      cur.value.filter = v
+    },
+  })
+
+  const vectorQuery = computed({
+    get: () => cur.value.vectorQuery,
+    set: (v: string) => {
+      cur.value.vectorQuery = v
+    },
+  })
+
   const vectorTopK = ref(3)
+
+  const loading = ref(false)
+  const bootstrapping = ref(true)
+  const error = computed({
+    get: () => cur.value.error,
+    set: (v: string | null) => {
+      cur.value.error = v
+    },
+  })
+  /** 当前 tab 是否已执行过一次检索 */
+  const searched = computed({
+    get: () => cur.value.searched,
+    set: (v: boolean) => {
+      cur.value.searched = v
+    },
+  })
 
   const allDocs = ref<Document[]>([])
   const allMemories = ref<Memory[]>([])
 
-  const results = ref<(Document | Memory)[]>([])
-  const loading = ref(false)
-  const bootstrapping = ref(true)
-  const error = ref<string | null>(null)
-  /** 是否已经执行过一次检索（区分「初始列表」与「检索结果」） */
-  const searched = ref(false)
+  /** 当前 tab 的结果：检索过就用检索结果，否则用全量列表 */
+  const results = computed<(Document | Memory)[]>(() => {
+    const s = cur.value
+    if (s.searched && s.results) return s.results
+    return tab.value === 'knowledge' ? allDocs.value : allMemories.value
+  })
 
   const hasFilter = computed(() => {
     const f = filter.value
@@ -125,45 +188,43 @@ export const useRecordsStore = defineStore('records', () => {
 
   async function bootstrap(signal?: AbortSignal) {
     bootstrapping.value = true
-    error.value = null
+    for (const k of ['knowledge', 'memory'] as const) states.value[k].error = null
     try {
       const [docs, mems] = await Promise.all([dataApi.knowledgeAll({ signal }), dataApi.memoryAll({ signal })])
       allDocs.value = docs
       allMemories.value = mems
-      results.value = tab.value === 'knowledge' ? docs : mems
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') return
-      error.value = e instanceof Error ? e.message : String(e)
+      cur.value.error = e instanceof Error ? e.message : String(e)
     } finally {
       bootstrapping.value = false
     }
   }
 
   /**
-   * 切换 tab：总是回落到该 tab 的全量列表。
-   * 不保留上一个 tab 的检索结果 —— 否则计数与列表内容属于不同类型，
-   * 用户会误以为「记忆有 14 条」而实际那是文档的检索结果。
+   * 切换 tab。
+   * 各 tab 的筛选条件与检索结果**各自保留** —— 两条链路独立，
+   * 切回来时应当还是离开时的样子（包括「已按条件筛选」标识）。
    */
   function setTab(next: RecordsTab) {
     tab.value = next
-    searched.value = false
-    error.value = null
-    results.value = next === 'knowledge' ? allDocs.value : allMemories.value
+    cur.value.error = null
   }
 
   function resetFilter() {
-    filter.value = emptyFilter()
-    vectorQuery.value = ''
-    vectorTopK.value = 3
-    searched.value = false
-    error.value = null
-    results.value = tab.value === 'knowledge' ? allDocs.value : allMemories.value
+    const s = cur.value
+    s.filter = emptyFilter()
+    s.vectorQuery = ''
+    s.searched = false
+    s.results = null
+    s.error = null
   }
 
   async function run(signal?: AbortSignal) {
-    error.value = null
+    const s = cur.value
+    s.error = null
     loading.value = true
-    const f = filter.value
+    const f = s.filter
     try {
       if (tab.value === 'knowledge') {
         if (knowledgeMode.value === 'preprocess') {
@@ -178,15 +239,15 @@ export const useRecordsStore = defineStore('records', () => {
           keyword: splitMulti(f.keyword),
           emotion: splitMulti(f.emotion),
         }
-        results.value =
+        s.results =
           knowledgeMode.value === 'text'
             ? await searchApi.textFilter({ ...base, target_text: f.targetText }, { signal })
             : await searchApi.metaFilter(base, { signal })
       } else {
-        results.value =
+        s.results =
           memoryMode.value === 'vector'
             ? await searchApi.memoryVector(
-                { query: vectorQuery.value.trim(), top_k: vectorTopK.value },
+                { query: s.vectorQuery.trim(), top_k: vectorTopK.value },
                 { signal },
               )
             : await searchApi.memoryFilter(
@@ -200,11 +261,12 @@ export const useRecordsStore = defineStore('records', () => {
                 { signal },
               )
       }
-      searched.value = true
+      s.searched = true
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') return
-      error.value = e instanceof Error ? e.message : String(e)
-      results.value = []
+      s.error = e instanceof Error ? e.message : String(e)
+      s.results = []
+      s.searched = true
     } finally {
       loading.value = false
     }

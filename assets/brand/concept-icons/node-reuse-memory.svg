@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="89 91 122 122" width="100%" height="100%">
+  <defs>
+    <!-- 相框渐变 -->
+    <linearGradient id="yellowFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="yellowFrameInner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B45309" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <radialGradient id="yellowPhoto" cx="50%" cy="60%" r="50%">
+      <stop offset="0%" stop-color="#FEF9E7" />
+      <stop offset="100%" stop-color="#FDE68A" />
+    </radialGradient>
+  </defs>
+
+  <!-- 居中平移 -->
+  <g transform="translate(150, 150)">
+    <!-- 相框支架 -->
+    <path d="M -20,45 L 0,55 L 20,45" fill="none" stroke="#B45309" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M -20,45 L 0,55 L 20,45" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+
+    <!-- 圆形相框外框 -->
+    <circle cx="0" cy="0" r="52" fill="#78350F" />
+    <circle cx="0" cy="0" r="50" fill="url(#yellowFrame)" />
+    
+    <!-- 相框高光 -->
+    <path d="M -40,-30 A 50,50 0 0,1 30,-40" fill="none" stroke="#FEF3C7" stroke-width="3" stroke-linecap="round" opacity="0.5" />
+    
+    <!-- 相框内框 -->
+    <circle cx="0" cy="0" r="38" fill="url(#yellowFrameInner)" />
+    <circle cx="0" cy="0" r="36" fill="url(#yellowPhoto)" />
+    
+    <!-- 内部小树 -->
+    <path d="M 0,15 Q -2,0 0,-10" fill="none" stroke="#B45309" stroke-width="5" stroke-linecap="round" />
+    <path d="M 0,5 Q -8,0 -12,-5" fill="none" stroke="#B45309" stroke-width="3" stroke-linecap="round" />
+    <path d="M 0,-2 Q 8,-8 12,-12" fill="none" stroke="#B45309" stroke-width="3" stroke-linecap="round" />
+    
+    <!-- 树冠 -->
+    <path d="M -15,-15 Q -25,-25 -15,-35 Q 0,-45 15,-35 Q 25,-25 15,-15 Q 5,-5 -5,-15 Z" fill="#FCD34D" opacity="0.9" />
+    <path d="M -10,-20 Q -15,-28 -5,-32 Q 5,-35 12,-28 Q 18,-20 10,-15 Q 0,-10 -8,-20 Z" fill="#FDE68A" />
+    
+    <!-- 树上光点 -->
+    <circle cx="-8" cy="-28" r="2.5" fill="#FFFFFF" opacity="0.8" />
+    <circle cx="8" cy="-22" r="2" fill="#FFFFFF" opacity="0.8" />
+    <circle cx="0" cy="-35" r="1.5" fill="#FFFFFF" opacity="0.6" />
+
+    <!-- 玻璃反光 -->
+    <line x1="-25" y1="-25" x2="-10" y2="-10" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.4" />
+    <line x1="-28" y1="-15" x2="-20" y2="-7" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.3" />
+  </g>
+</svg>

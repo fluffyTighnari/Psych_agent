@@ -38,7 +38,7 @@ const title = computed(() => `${KIND_LABEL[props.citation.kind]}${props.index} Â
   padding: 1px 5px 1px 4px;
   border-radius: var(--r-sm);
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--fs-2xs);
   line-height: 1.5;
   vertical-align: super;
   cursor: pointer;

@@ -284,10 +284,25 @@ function onCiteHover(id: string | null) {
 
 /* ---------- 跳转 ---------- */
 
+/**
+ * 跳到某一轮。
+ *
+ * 不能用 scrollIntoView({ block: 'center' })：一轮对话常有一两千像素高
+ * （建议者回复 + 执行链），而视口只有几百像素。按整轮中心对齐，等于把
+ * 轮次开头推到视口上方一千多像素处 —— 用户点第 1 轮，落到的却是第 3 轮。
+ *
+ * 改成把轮次**顶部**对齐到视口上方留白处：长轮次从头读起，
+ * 短轮次也仍落在可见范围内。
+ */
 function jumpToTurn(turnId: string) {
-  const el = scrollRef.value?.querySelector(`[data-turn-id="${turnId}"]`)
-  if (!el) return
-  el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  const root = scrollRef.value
+  const el = root?.querySelector<HTMLElement>(`[data-turn-id="${turnId}"]`)
+  if (!root || !el) return
+
+  const TOP_PAD = 12
+  const top = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop
+  root.scrollTo({ top: Math.max(0, top - TOP_PAD), behavior: 'smooth' })
+
   // 目标描边脉冲，让用户确认到了哪一条
   el.classList.add('is-flash')
   setTimeout(() => el.classList.remove('is-flash'), 1200)

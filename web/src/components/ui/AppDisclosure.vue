@@ -161,10 +161,17 @@ function toggle() {
   white-space: nowrap;
 }
 
+/*
+ * meta 既有时间戳/日期（19:53:20、2026-9-5），也有中文短语（「3 候选」）。
+ * 时间戳用等宽对齐是好处的，但中文放进 mono 栈会掉进系统等宽中文字体，又细又尖。
+ * 折中：字号提到与正文辅助文字同档，颜色用次要色而非三级灰；
+ * 时间戳那类仍靠 font-variant-numeric 保持数字对齐。
+ */
 .disc__meta {
-  font-family: var(--font-mono);
-  font-size: var(--fs-2xs);
-  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 

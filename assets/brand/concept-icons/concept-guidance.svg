@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 48 48" role="img" aria-label="引导">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.3 41.5 C11.2 38.3 14.1 35.8 17.4 33.0 C21.6 29.4 24.5 24.2 29.2 20.3 C30.4 19.3 31.6 20.2 32.5 21.2" stroke="#C24A2E" stroke-width="1.9"/>
+    <path d="M34.2 8.2 L39.9 8.2 L40.9 11.1 L33.3 11.1 Z" fill="#EAD8AE" stroke="#B08A4C" stroke-width="1.35"/>
+    <path d="M33.3 11.1 L40.9 11.1 L41.9 20.4 L32.4 20.4 Z" fill="#F3E6CB" stroke="#B08A4C" stroke-width="1.4"/>
+    <path d="M32.4 20.4 L41.9 20.4 L40.4 22.8 L33.7 22.8 Z" fill="#EAD8AE" stroke="#B08A4C" stroke-width="1.35"/>
+    <path d="M36.8 8.2 C36.8 6.2 35.4 5.4 34.4 6.4" stroke="#7A5C2E" stroke-width="1.1"/>
+    <path d="M37.1 11.2 L38.0 20.4" stroke="#2A231C" stroke-width="0.9" opacity="0.55"/>
+    <circle cx="37.2" cy="16.2" r="2.1" fill="#B08A4C" stroke="#7A5C2E" stroke-width="0.7"/>
+    <path d="M32.5 21.2 C33.5 22.8 34.7 22.7 35.2 21.5" stroke="#C24A2E" stroke-width="1.4"/>
+  </g>
+</svg>

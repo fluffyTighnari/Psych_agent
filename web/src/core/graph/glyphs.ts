@@ -129,6 +129,14 @@ function memoryGlyph(): GlyphPaths {
       }),
       { role: 'faint', d: 'M9 42 L14 41' },
     ],
+    // 画布使用整枚彩色原图；图例继续用上面的同形线稿（沿用 session-orbit 先例）
+    image: {
+      href: '/brand/graph/node-reuse-memory.svg',
+      x: 0,
+      y: 0,
+      width: 48,
+      height: 48,
+    },
     extent: 1,
   }
 }
@@ -151,6 +159,14 @@ function documentGlyph(): GlyphPaths {
         d: 'M17 24 C22 22 27 22 31 21 M17 31 C21 30 25 30 27 28',
       },
     ],
+    // 知识节点复用用户原图，画布不再绘线稿
+    image: {
+      href: '/brand/graph/node-reuse-knowledge.svg',
+      x: 0,
+      y: 0,
+      width: 48,
+      height: 48,
+    },
     extent: 1,
   }
 }
@@ -173,6 +189,14 @@ function reasonGlyph(): GlyphPaths {
         d: 'M20 26 L45 24',
       },
     ],
+    // 引导节点复用用户原图，画布不再绘线稿
+    image: {
+      href: '/brand/graph/node-reuse-guidance.svg',
+      x: 0,
+      y: 0,
+      width: 48,
+      height: 48,
+    },
     extent: 1,
   }
 }

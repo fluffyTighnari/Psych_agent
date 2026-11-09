@@ -42,7 +42,14 @@ function newScope() {
 }
 
 const isKnowledge = computed(() => records.tab === 'knowledge')
-const isPreprocess = computed(() => records.knowledgeMode === 'preprocess')
+/*
+ * 「预处理」只是知识文档下的一个二级模式，不是全局模式。
+ *
+ * 原先只判 knowledgeMode，于是：在知识文档里选中「预处理」，再切到「历史记忆检索」，
+ * knowledgeMode 仍停在 'preprocess' —— 记忆页继续显示预处理说明、隐藏全部筛选区、
+ * 按钮还写着「运行预处理」。两条检索链路本应完全独立。
+ */
+const isPreprocess = computed(() => isKnowledge.value && records.knowledgeMode === 'preprocess')
 const searchLabel = computed(() => (isPreprocess.value ? '运行预处理' : '搜索'))
 
 const results = computed(() => records.results)

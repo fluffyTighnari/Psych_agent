@@ -98,5 +98,8 @@ eq(
   '多个引用连续出现',
 )
 
+/* 占位符 ID 的回归测试在 test-citations-src.mjs —— 那里直接加载真实源码，
+   不手抄实现，能真正捕捉源码回归。本文件只保留纯函数级的手工用例。 */
+
 console.log(`\n${pass} pass / ${fail} fail`)
 process.exit(fail === 0 ? 0 : 1)

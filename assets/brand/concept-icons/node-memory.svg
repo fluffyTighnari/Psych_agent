@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 48 48" role="img" aria-label="记忆节点">
+  <defs>
+    <linearGradient id="frameYellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FBBF24"/>
+      <stop offset="0.52" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#D97706"/>
+    </linearGradient>
+    <linearGradient id="photoWarm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FEF9E7"/>
+      <stop offset="1" stop-color="#FDE68A"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 40.5 L24 45 L33 40.5" stroke="#B45309" stroke-width="2.1"/>
+    <path d="M15 40.5 L24 45 L33 40.5" stroke="#F59E0B" stroke-width="0.8" opacity="0.7"/>
+    <circle cx="24" cy="23" r="18" fill="url(#frameYellow)" stroke="#B45309" stroke-width="0.8"/>
+    <circle cx="24" cy="23" r="16.2" fill="#B45309"/>
+    <circle cx="24" cy="23" r="14.8" fill="url(#photoWarm)"/>
+    <path d="M15.8 16.4 A 14.8 14.8 0 0 1 26.5 9.2" stroke="#FEF3C7" stroke-width="1.2" opacity="0.6"/>
+    <path d="M24 34.5 L24 25.5" stroke="#B45309" stroke-width="2.2"/>
+    <path d="M24 30.5 L21 27.5 M24 28.5 L27 25.5" stroke="#B45309" stroke-width="1.5"/>
+    <path d="M24 13.8 C20.5 13.8 18 16.6 18 19.8 C15.5 20.8 16.4 25.2 19.9 26.2 C18.5 29.1 21.9 30.2 24 27.8 C26.1 30.2 29.5 29.1 28.1 26.2 C31.6 25.2 32.5 20.8 30 19.8 C30 16.6 27.5 13.8 24 13.8 Z" fill="#FDE68A" stroke="#F59E0B" stroke-width="0.7"/>
+    <path d="M24 16.6 C21.8 16.6 20.2 18.4 20.2 20.4 C18.7 21.1 19.4 24.1 21.7 24.7 C21.1 26.6 24 27.3 24 25.4 C24 27.3 26.9 26.6 26.3 24.7 C28.6 24.1 29.3 21.1 27.8 20.4 C27.8 18.4 26.2 16.6 24 16.6 Z" fill="#FEF3C7" opacity="0.9"/>
+  </g>
+</svg>

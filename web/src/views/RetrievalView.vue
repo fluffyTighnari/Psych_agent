@@ -557,8 +557,8 @@ const stageHint = computed(() => {
 
 .stat i {
   font-style: normal;
-  font-size: 10.5px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-2xs);
+  color: var(--text-secondary);
 }
 
 .rd-scroll {
@@ -660,17 +660,19 @@ const stageHint = computed(() => {
 
 .switch__alias {
   margin-left: 5px;
-  font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-2xs);
   font-style: normal;
   font-weight: var(--fw-regular);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .switch__desc {
-  font-size: 10.5px;
-  line-height: var(--lh-tight);
-  color: var(--text-tertiary);
+  /* 这是可读的功能说明（「把原始提问与改写问句分别编码后加权平均」），
+     10.5px 三级灰在米底上基本看不清 */
+  font-size: var(--fs-2xs);
+  line-height: 1.55;
+  color: var(--text-secondary);
 }
 
 .switch__mark {
@@ -768,7 +770,7 @@ const stageHint = computed(() => {
   background: var(--accent);
   color: var(--text-on-accent);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-2xs);
 }
 
 .final-card__body {
@@ -816,7 +818,7 @@ const stageHint = computed(() => {
   padding: 1px 7px;
   border-radius: var(--r-sm);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   white-space: nowrap;
 }
 
@@ -840,7 +842,7 @@ const stageHint = computed(() => {
   margin: 0 4px 3px 0;
   padding: 1px 7px;
   border-radius: var(--r-pill);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
 }
 
 .chip--topic {
@@ -870,13 +872,13 @@ const stageHint = computed(() => {
   border-radius: var(--r-sm);
   background: var(--surface-sunken);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-secondary);
 }
 
 .stage-lat {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
 }
 
@@ -915,7 +917,7 @@ const stageHint = computed(() => {
 .rank__no,
 .rank__score {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   padding-top: 1px;
 }
 
@@ -955,13 +957,17 @@ const stageHint = computed(() => {
   background: var(--accent);
   color: var(--text-on-accent);
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--fs-2xs);
 }
 
+/*
+ * 排名行下的文档摘要：这是可读正文，不是标签。
+ * 原先 10.5px 三级灰，等于把最有信息量的内容压成灰雾。
+ */
 .rank__sum {
-  font-size: 10.5px;
-  color: var(--text-tertiary);
-  line-height: var(--lh-tight);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -1003,7 +1009,7 @@ const stageHint = computed(() => {
 
 .kv--mono {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
 }
 
 .kv dd.is-json {
@@ -1024,7 +1030,7 @@ const stageHint = computed(() => {
 
 .log-err {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   color: var(--danger);
   background: var(--surface-danger-ghost);
   padding: var(--sp-2);
@@ -1062,7 +1068,7 @@ const stageHint = computed(() => {
 
 .doc-id {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--fs-2xs);
   color: var(--text-disabled);
 }
 

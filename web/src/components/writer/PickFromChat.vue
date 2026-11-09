@@ -373,7 +373,7 @@ function isEmpty() {
   padding: 1px 7px;
   border-radius: var(--r-pill);
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--fs-2xs);
   white-space: nowrap;
 }
 
@@ -423,7 +423,7 @@ function isEmpty() {
   margin-bottom: var(--sp-2);
   padding-bottom: var(--sp-1);
   border-bottom: 1px dashed var(--border-soft);
-  font-size: 12px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
 }
 

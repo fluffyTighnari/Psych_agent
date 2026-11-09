@@ -180,9 +180,18 @@ async function onCopy() {
   padding: var(--sp-3) var(--sp-4);
 }
 
+/*
+ * 用户气泡：淡黄纸块。
+ *
+ * 起初是近黑反白（太抢眼，每句话砸下一块黑），后来一度改成完全透明
+ * （问题是连续几行时看不出哪里是自己的话）。
+ * 这里是两者的中间点：淡黄、无阴影、边框几乎不可见 ——
+ * 能认出气泡，但视觉重量明显低于建议者的白卡。
+ */
 .msg--user .msg__bubble {
-  background: var(--surface-inverse);
-  color: var(--text-on-dark);
+  background: var(--surface-user);
+  color: var(--text-primary);
+  border: 1px solid var(--border-user);
   border-bottom-right-radius: var(--r-sm);
 }
 

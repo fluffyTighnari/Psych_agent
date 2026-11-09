@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-label="图谱节点试排">
+  <defs>
+    <linearGradient id="mockBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFDF9"/>
+      <stop offset="1" stop-color="#F6F1E8"/>
+    </linearGradient>
+    <filter id="nodeShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#8A7B66" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#mockBg)"/>
+
+  <text x="600" y="80" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="28" font-weight="600" fill="#2A231C" letter-spacing="2">图谱节点试排</text>
+  <text x="600" y="110" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#746750" letter-spacing="1">48×48 矢量字形 · 120px 节点</text>
+
+  <path d="M300 300 C400 258 500 228 600 210" fill="none" stroke="#CFC0A6" stroke-width="1.6" stroke-dasharray="6 8" opacity="0.75"/>
+  <path d="M600 210 C700 228 800 258 900 300" fill="none" stroke="#CFC0A6" stroke-width="1.6" stroke-dasharray="6 8" opacity="0.75"/>
+  <path d="M300 300 C450 392 750 392 900 300" fill="none" stroke="#CFC0A6" stroke-width="1.2" stroke-dasharray="4 9" opacity="0.5"/>
+
+  <g filter="url(#nodeShadow)">
+    <circle cx="300" cy="300" r="62" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.4"/>
+    <circle cx="300" cy="300" r="58" fill="none" stroke="#FDE68A" stroke-width="1"/>
+    <image href="node-memory.png" x="252" y="252" width="96" height="96"/>
+    <text x="300" y="392" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" fill="#4A3F33" letter-spacing="2">记忆</text>
+  </g>
+
+  <g filter="url(#nodeShadow)">
+    <circle cx="600" cy="210" r="62" fill="#ECFDF5" stroke="#10B981" stroke-width="1.4"/>
+    <circle cx="600" cy="210" r="58" fill="none" stroke="#A7F3D0" stroke-width="1"/>
+    <image href="node-knowledge.png" x="552" y="162" width="96" height="96"/>
+    <text x="600" y="302" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" fill="#4A3F33" letter-spacing="2">知识</text>
+  </g>
+
+  <g filter="url(#nodeShadow)">
+    <circle cx="900" cy="300" r="62" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.4"/>
+    <circle cx="900" cy="300" r="58" fill="none" stroke="#DDD6FE" stroke-width="1"/>
+    <image href="node-guidance.png" x="852" y="252" width="96" height="96"/>
+    <text x="900" y="392" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" fill="#4A3F33" letter-spacing="2">引导</text>
+  </g>
+</svg>
