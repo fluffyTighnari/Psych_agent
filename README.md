@@ -168,3 +168,6 @@ docker compose up -d --build
 - 停止：`docker compose down`
 
 > 注意：embedding/reranker 模型需先在本机 `./models/` 就绪再启动容器；qwen3.5:9b-128k 等对话模型由宿主机 Ollama 提供，需先在宿主机 `ollama pull`；首次调用会下载，耗时取决于网络。
+
+
+![image](.\assets\brand\show.png)
