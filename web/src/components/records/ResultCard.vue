@@ -207,9 +207,10 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
   white-space: nowrap;
 }
 
-/* 记录页是阅读界面，摘要按正文对待（14.5px），不用工具界面的小字 */
+/* 记录页是阅读界面，摘要按正文对待（--fs-sm），不用工具界面的小字。
+   必须走令牌：写死 14.5px 会绕过 --density，界面缩小后正文反而显得巨大。 */
 .rc__summary {
-  font-size: 14.5px;
+  font-size: var(--fs-sm);
   line-height: 1.8;
   color: var(--text-secondary);
   margin-bottom: var(--sp-2);
@@ -258,7 +259,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
 }
 
 .rc__body {
-  font-size: 14.5px;
+  font-size: var(--fs-sm);
   line-height: 1.85;
   color: var(--text-secondary);
 }
@@ -303,7 +304,7 @@ const allTerms = computed(() => [...(props.terms ?? []), ...keywords.value])
 }
 
 .rc__dlg-text {
-  font-size: 13.5px;
+  font-size: var(--fs-xs);
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;

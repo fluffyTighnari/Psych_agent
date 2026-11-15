@@ -189,7 +189,7 @@ const legend: { type: GraphNode['type']; label: string; color: string }[] = [
           class="gc__ctl"
           title="适应窗口"
           aria-label="适应窗口"
-          @click="engine?.zoomToFit()"
+          @click="engine?.zoomToFit({ allowZoomIn: true })"
         >
           <AppIcon name="maximize" :size="15" />
         </button>

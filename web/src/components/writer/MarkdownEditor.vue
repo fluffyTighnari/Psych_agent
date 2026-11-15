@@ -59,7 +59,12 @@ function buildTheme() {
   return EditorView.theme(
     {
       '&': {
-        fontSize: '15px',
+        /*
+         * 字号必须读令牌，不能写死。
+         * 写死 15px 时，它完全绕过 --density：界面整体缩到 75% 后，
+         * 周边文字 11.6px、编辑器正文还是 15px，看上去"编辑框里的字特别大"。
+         */
+        fontSize: v('--fs-base', '15px'),
         backgroundColor: 'transparent',
         color: v('--text-primary', '#2a231c'),
         // 不写死 100%：高度由内容与 min-height 决定，滚动交给外层容器
@@ -83,7 +88,7 @@ function buildTheme() {
         border: 'none',
         color: v('--text-disabled', '#a89a86'),
         fontFamily: v('--font-mono', 'monospace'),
-        fontSize: '11px',
+        fontSize: v('--fs-2xs', '11px'),
       },
       '.cm-activeLine': { backgroundColor: 'rgba(194, 74, 46, 0.035)' },
       '.cm-activeLineGutter': { backgroundColor: 'transparent', color: v('--accent-deep', '#a03820') },
@@ -255,9 +260,17 @@ defineExpose({ insertAtCursor, appendText, focus })
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--surface-raised);
-  /* 高度随内容增长，滚动交给页面；min-height 由 prop 控 */
+  /*
+   * 高度随内容增长，滚动交给页面；min-height 由 prop 控。
+   *
+   * overflow: hidden 只为了裁圆角，但它同时会吃掉超出的内容：
+   * 长文档时 .cm-editor 长到 750px、外层停在 653px，超出的部分被裁掉，
+   * 而 .app-view 的 scrollHeight 仍是 950 —— 页面表现为"写长了却滚不动"。
+   * 改成 clip 之外的方案：不裁内容，让外层跟着长。
+   */
   min-height: var(--editor-min-h, 420px);
-  overflow: hidden;
+  /* 圆角裁切交给 background-clip，不再依赖 overflow */
+  background-clip: padding-box;
   /*
    * 焦点态不用朱砂色描边。
    * 试过的三种方案都失败：
@@ -278,7 +291,15 @@ defineExpose({ insertAtCursor, appendText, focus })
 }
 
 .md-editor :deep(.cm-editor) {
-  /* 不写 height:100%：否则长文档会被压进固定高度里溢出裁切 */
-  min-height: inherit;
+  /*
+   * 让编辑区至少铺满容器，但不钉死高度。
+   *
+   * 三代方案的取舍：
+   *   ① `height: 100%` —— 把高度钉死，长文档被 overflow 裁掉、页面滚不动（批次 H 的坑）；
+   *   ② `min-height: inherit` —— inherit 取的是父级的**声明值**（420px），
+   *      不是父级被 flex 撑开后的实际高度，于是外层 653px、内层还是 420px，底部一片空白；
+   *   ③ 现在：`min-height: 100%` —— 100% 相对父级的实际高度，短内容铺满、长内容自然增长。
+   */
+  min-height: 100%;
 }
 </style>

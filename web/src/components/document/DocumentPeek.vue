@@ -586,7 +586,7 @@ onBeforeUnmount(() => {
 
 /* 正文：这是阅读界面，字号与行宽都要够 */
 .peek__text {
-  font-size: 15.5px;
+  font-size: var(--fs-base);
   line-height: 1.95;
   color: var(--text-primary);
   white-space: pre-wrap;
@@ -602,7 +602,7 @@ onBeforeUnmount(() => {
 }
 
 .peek__list li {
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.85;
   color: var(--text-primary);
 }
@@ -657,7 +657,7 @@ onBeforeUnmount(() => {
 }
 
 .peek__dlg-text {
-  font-size: 14.5px;
+  font-size: var(--fs-sm);
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;

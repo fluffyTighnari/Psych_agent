@@ -129,13 +129,14 @@ const connState = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: 11px 12px;
+  padding: var(--sp-3);
   border-radius: var(--r-md);
   color: var(--text-secondary);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
   position: relative;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background var(--dur-base) var(--ease-out),
     color var(--dur-base) var(--ease-out);

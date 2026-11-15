@@ -201,7 +201,18 @@ export class GraphEngine {
     this.renderOnce()
   }
 
-  zoomToFit(): void {
+  /**
+   * 缩放到适应全部节点。
+   *
+   * `fitCap` 限制"能放大到多少倍"。默认 1 是刻意的：
+   * 只有一两个节点时，按容器尺寸算出来的比例会远大于 1，
+   * 于是首屏直接把一个孤立的「当前会话」放大到 300% —— 既荒谬又难看，
+   * 而且让用户误以为图谱一直是放大状态。
+   *
+   * 工具栏的「适应窗口」按钮传 `{ allowZoomIn: true }`，
+   * 因为那是用户主动要求填满视口。
+   */
+  zoomToFit(opts: { allowZoomIn?: boolean } = {}): void {
     const nodes = this.sim.nodes
     if (!nodes.length) return
 
@@ -217,13 +228,14 @@ export class GraphEngine {
     const w = Math.max(maxX - minX, 1)
     const h = Math.max(maxY - minY, 1)
     const padding = 48
+    const cap = opts.allowZoomIn ? MAX_SCALE : 1
     const scale = Math.min(
       (width - padding * 2) / w,
       (height - padding * 2) / h,
-      MAX_SCALE,
+      cap,
     )
 
-    const clamped = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale))
+    const clamped = Math.max(MIN_SCALE, Math.min(cap, scale))
     this.view.scale = clamped
     this.view.offsetX = width / 2 - ((minX + maxX) / 2) * clamped
     this.view.offsetY = height / 2 - ((minY + maxY) / 2) * clamped

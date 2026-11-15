@@ -7,6 +7,16 @@
    ========================================================================== */
 
 :root {
+  /* ---------- 全局密度 ----------
+   * 所有"尺寸类"令牌（字号 / 间距 / 圆角 / 布局宽）都乘以这个系数。
+   * 调一处即可整体放大或收紧界面，不用逐个改数值。
+   *
+   * 当前 0.75：真实浏览器 100% 渲染下的视觉密度。
+   * 注意：它不影响硬编码的 px（项目里还有约 227 处），
+   * 那些是 1–8px 的边框/微调值，本来就不参与密度调节。
+   */
+  --density: 0.75;
+
   /* ---------- base：物理色，仅 role 层可引用 ---------- */
   /*
    * 纸面层级：靠**亮度阶梯**建立层次，而不是靠「越上层越黄」。
@@ -96,16 +106,20 @@
 
      2026-11 再上调一档：12.5px 的中文（尤其中性灰）在浅米底上笔画过细，
      远看是一层灰雾。根因不只是字号——很多地方还绕过令牌写死了 9.5–12px，
-     并且中文落进了 mono 栈（见 --font-mono 注释）。三处一起修才有效果。 */
-  --fs-2xs: 13px;
-  --fs-xs: 13.5px;
-  --fs-sm: 14.5px;
-  --fs-base: 15.5px;
-  --fs-md: 18px;
-  --fs-lg: 23px;
-  --fs-xl: 30px;
+     并且中文落进了 mono 栈（见 --font-mono 注释）。三处一起修才有效果。
 
-  /* ---------- 行高：3 档（中文方块字需要更多行距） ---------- */
+     数值乘以 --density。0.75 之后正文约 11.6px —— 这是在"整体缩小"
+     与"中文可读性"之间选的平衡点：再小一档，中文笔画会重新糊成灰雾。 */
+  --fs-2xs: calc(13px * var(--density));
+  --fs-xs: calc(13.5px * var(--density));
+  --fs-sm: calc(14.5px * var(--density));
+  --fs-base: calc(15.5px * var(--density));
+  --fs-md: calc(18px * var(--density));
+  --fs-lg: calc(23px * var(--density));
+  --fs-xl: calc(30px * var(--density));
+
+  /* ---------- 行高：3 档（中文方块字需要更多行距） ----------
+     行高是无单位比例，不随密度变化 —— 字号变小时比例本就成立。 */
   --lh-tight: 1.4;
   --lh-body: 1.75;
   --lh-loose: 2;
@@ -116,19 +130,19 @@
   --fw-bold: 700;
 
   /* ---------- 间距：4px 标度，8 级 ---------- */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 24px;
-  --sp-6: 32px;
-  --sp-7: 48px;
-  --sp-8: 64px;
+  --sp-1: calc(4px * var(--density));
+  --sp-2: calc(8px * var(--density));
+  --sp-3: calc(12px * var(--density));
+  --sp-4: calc(16px * var(--density));
+  --sp-5: calc(24px * var(--density));
+  --sp-6: calc(32px * var(--density));
+  --sp-7: calc(48px * var(--density));
+  --sp-8: calc(64px * var(--density));
 
   /* ---------- 圆角：4 档 ---------- */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
+  --r-sm: calc(6px * var(--density));
+  --r-md: calc(10px * var(--density));
+  --r-lg: calc(16px * var(--density));
   --r-pill: 999px;
 
   /* ---------- 阴影：4 级 ---------- */
@@ -173,12 +187,12 @@
     'Noto Sans SC Variable', 'Noto Sans SC Fallback', 'PingFang SC', 'Microsoft YaHei', monospace;
 
   /* ---------- 布局 ---------- */
-  --rail-w: 224px;
-  --rail-w-compact: 72px;
-  --graph-pane-w: 400px;
-  --view-pad-x: clamp(16px, 2.4vw, 38px);
-  /* 阅读/写作最佳行宽。68ch 在大屏上偏窄（15.5px 字号下约 566px），
-     专注模式会显得局促；76ch 约 640px，更接近纸质阅读的舒适宽度。 */
+  --rail-w: calc(224px * var(--density));
+  --rail-w-compact: calc(72px * var(--density));
+  --graph-pane-w: calc(400px * var(--density));
+  --view-pad-x: clamp(calc(16px * var(--density)), 2.4vw, calc(38px * var(--density)));
+  /* 阅读/写作最佳行宽。76ch 约 640px，更接近纸质阅读的舒适宽度。
+     ch 随字号自动缩放，无需乘密度。 */
   --measure: 76ch;
 }
 

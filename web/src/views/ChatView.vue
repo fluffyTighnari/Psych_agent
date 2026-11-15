@@ -13,6 +13,7 @@ import ExecutionChain from '@/components/chat/ExecutionChain.vue'
 import GraphCanvas from '@/components/graph/GraphCanvas.vue'
 import NodeInspector from '@/components/graph/NodeInspector.vue'
 import { toolApi } from '@/core/api'
+import { DENSITY } from '@/core/graph/glyphs'
 import { TraceStream } from '@/core/stream/trace-stream'
 import { useModelsStore } from '@/stores/models'
 import { useSessionStore } from '@/stores/session'
@@ -41,10 +42,13 @@ const drawerOpen = ref(false)
  * 图谱面板宽度与折叠状态。
  * 宽度可拖（280–560），记忆在 localStorage —— 不同用户对「看结构」和
  * 「读文档」的空间诉求差异很大，写死一个值必然有人不满。
+ *
+ * 数值乘 DENSITY：图谱面板宽度不来自 CSS 令牌（是内联 style），
+ * 不跟着密度缩放的话，界面整体缩到 75% 而图谱还占着原来的宽度。
  */
-const GRAPH_MIN = 280
-const GRAPH_MAX = 560
-const GRAPH_DEFAULT = 380
+const GRAPH_MIN = Math.round(280 * DENSITY)
+const GRAPH_MAX = Math.round(560 * DENSITY)
+const GRAPH_DEFAULT = Math.round(380 * DENSITY)
 
 function readGraphWidth(): number {
   try {
@@ -217,15 +221,25 @@ async function onSend(text: string, situation: string | null) {
   // 流式期间持续跟随（贴底时）
   const timer = setInterval(followIfNearBottom, 120)
 
-  await promise
-  clearInterval(timer)
-  followIfNearBottom()
+  try {
+    await promise
+  } finally {
+    /*
+     * 清理与刷新放在 finally 里。
+     *
+     * 原先 await promise 之后的几行在 try 之外：send() 一旦抛错
+     * （中止、网络失败、后端异常），clearInterval 与 graph.load() 都不会执行 ——
+     * 定时器泄漏成永久轮询，图谱也停在开聊前的状态。
+     */
+    clearInterval(timer)
+    followIfNearBottom()
 
-  /*
-   * 每轮对话都会新增引用文档 / 推理节点，图谱必须跟着更新 ——
-   * 否则用户做完一轮对话，右侧图谱还停在开聊前的状态。
-   */
-  void graph.load()
+    /*
+     * 每轮对话都会新增引用文档 / 推理节点，图谱必须跟着更新 ——
+     * 否则用户做完一轮对话，右侧图谱还停在开聊前的状态。
+     */
+    void graph.load()
+  }
 
   const last = turns.value[turns.value.length - 1]
   if (last?.ended) {
@@ -350,6 +364,15 @@ async function runConfirmed() {
       await turnStore.clearTurns()
       toastOk('已清空本轮对话')
     }
+    /*
+     * 图谱必须跟着清。
+     *
+     * clearTurns / resetTurns 只清了 turn store 与 session 状态，
+     * 图谱是另一份数据（useGraphStore），不重载就还停在清空前的样子 ——
+     * 后端已经只剩一个 session 节点，画布上却仍挂着旧的文档节点。
+     */
+    graph.select(null)
+    await graph.load()
     confirmAction.value = null
   } catch (e) {
     toastErr('操作失败：' + (e instanceof Error ? e.message : String(e)))

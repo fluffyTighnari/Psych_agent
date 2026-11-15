@@ -230,12 +230,29 @@ export function glyphFor(type: GlyphType): GlyphPaths {
   return g
 }
 
-/** 各类型的默认半径（像素） */
-export const GLYPH_RADIUS: Record<GlyphType, number> = {
+/**
+ * 各类型的默认半径（像素）。
+ *
+ * 乘 `DENSITY` 与 CSS 的 `--density` 保持同一比例 ——
+ * 节点画在 SVG 里，不参与 CSS 令牌缩放，不手动对齐就会比周边文字"大一圈"：
+ * 界面整体缩到 75%，节点却还是原尺寸，视觉上图谱就没跟着变小。
+ *
+ * 改 `--density` 时同步改这里。
+ */
+export const DENSITY = 0.75
+
+const BASE_RADIUS: Record<GlyphType, number> = {
   session: 26,
   memory: 19,
   document: 17,
   reason: 16,
+}
+
+export const GLYPH_RADIUS: Record<GlyphType, number> = {
+  session: BASE_RADIUS.session * DENSITY,
+  memory: BASE_RADIUS.memory * DENSITY,
+  document: BASE_RADIUS.document * DENSITY,
+  reason: BASE_RADIUS.reason * DENSITY,
 }
 
 /** 各类型的无障碍中文名 */

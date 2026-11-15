@@ -435,7 +435,7 @@ function isEmpty() {
 
 /* 全文按正文排版，方便逐句挑选 */
 .pick__full-text {
-  font-size: 14.5px;
+  font-size: var(--fs-sm);
   line-height: 1.9;
   color: var(--text-primary);
   white-space: pre-wrap;

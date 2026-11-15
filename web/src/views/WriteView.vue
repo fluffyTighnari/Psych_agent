@@ -257,7 +257,7 @@ function onSubmitShortcut() {
     </div>
 
     <!-- ============ Weekly ============ -->
-    <div v-else class="editor-wrap" :class="{ 'is-focus': ui.focusMode }">
+    <div v-else class="editor-wrap editor-wrap--weekly" :class="{ 'is-focus': ui.focusMode }">
       <div v-if="!ui.focusMode" class="weekly-meta">
         <AppField label="文件名（用核心问题命名）">
           <input v-model="write.filename" class="c-input" placeholder="例如：如何停止过度在意他人评价" />
@@ -523,10 +523,22 @@ function onSubmitShortcut() {
 /*
  * 编辑区不自己滚，滚动交给 .app-view（整页）。
  * 双层滚动会让鼠标滚轮行为取决于光标位置，体验割裂。
+ *
+ * flex: 1 是关键：.app-view 是 height:100% 的纵向 flex，
+ * 编辑器若不撑满剩余高度，内容写完后下方会空出几百像素
+ * （实测 950px 视口下操作栏之上只有 420px 编辑器，底部留白 249px）。
  */
 .editor-wrap {
   display: flex;
   flex-direction: column;
+  /*
+   * flex-grow: 1 让短内容也能把操作栏推到底部；
+   * flex-shrink: 0 必须显式写死 —— 默认 1 会让容器被**压缩**到视口高度，
+   * 内部 1300px 的内容溢出到容器外，底部操作栏因此浮在内容中间，
+   * 页面也不能滚动（scrollHeight 只算容器高度，不算溢出内容）。
+   * Weekly 三段叠加时这个问题最明显。
+   */
+  flex: 1 0 auto;
   gap: var(--sp-4);
   /* 编辑区居中并放宽：原来 1000px 左对齐，大屏右侧留白明显 */
   max-width: 1200px;
@@ -534,6 +546,22 @@ function onSubmitShortcut() {
   margin-inline: auto;
   /* 底部留白收紧：原来 padding-bottom + actions 的 padding-top 叠加出大片空白 */
   padding-bottom: 0;
+}
+
+/*
+ * Daily 的编辑器：内容短时铺满剩余空间，内容长时自然增长。
+ *
+ * `flex: 1` 吃掉 wrap 里的剩余高度；min-height 保持组件自己声明的下限
+ * （420px / 专注 72vh），避免空文档时塌成一条细缝。
+ * 长内容时 CodeMirror 会自己长高，撑开上层并由 .app-view 滚动。
+ *
+ * 必须排除周记：Weekly 的三个编辑器也在这个 wrap 里，
+ * 被 `flex: 1` 一起撑高后，每个都被拉成等高的一大块，
+ * 页面反而滚不动（三层编辑器互相挤占）。只有 direct child 才是 Daily 的单编辑器。
+ */
+.editor-wrap:not(.editor-wrap--weekly) > :deep(.md-editor) {
+  flex: 1 1 auto;
+  min-height: var(--editor-min-h, 420px);
 }
 
 /* 专注模式：单栏但不必过窄，92ch 约 780px，比 76ch 少留很多空白 */

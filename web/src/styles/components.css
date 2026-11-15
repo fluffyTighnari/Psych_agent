@@ -199,6 +199,13 @@
   position: relative;
 }
 
+/*
+ * 视图根容器。
+ *
+ * height（不是 min-height）是刻意的：各页面视自己为整屏容器，
+ * 需要滚动的视图（编辑页）在自己的 scoped 样式里加 overflow-y: auto。
+ * 若改成 min-height，容器会跟着内容长高，内层 overflow 就永远不触发滚动。
+ */
 .app-view {
   display: flex;
   flex-direction: column;

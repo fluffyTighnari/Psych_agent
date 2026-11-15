@@ -1200,3 +1200,408 @@ computed，视图层的双向绑定代码一行没改。
 | 单测 | 84 全绿（含新增 14 条源码级引用测试） |
 | 无障碍 | axe 五视图 0 违规 |
 | 类型检查 / 构建 | 通过 |
+
+---
+
+## 14. 批次 N：清空后图谱残留 + 引导模式缺情境输入（2026-11-09）
+
+### 14.1 清空对话后图谱未清空
+
+**现象**：清空 / 重置会话后，后端图谱接口已只返回 1 个 session 节点，
+画布上却仍挂着清空前的文档节点。
+
+**根因**：`runConfirmed()` 只调了 `turnStore.clearTurns()` / `resetTurns()`，
+**完全没有触碰 graph store**。图谱是另一份独立数据（`useGraphStore`），
+不显式重载就一直停旧值。
+
+```ts
+// 修法
+graph.select(null)        // 清掉选中，否则 Inspector 还指着已消失的节点
+await graph.load()
+```
+
+**排查过程中顺带修掉一个更隐蔽的问题**（`ChatView.onSend`）：
+
+```ts
+await promise
+clearInterval(timer)      // ← 这几行在 try 之外
+followIfNearBottom()
+void graph.load()
+```
+
+`turnStore.send()` 在内部捕获了异常并正常返回，所以这里平时不出问题；
+但一旦 `await promise` 本身抛错（组件卸载、上游 promise 未捕获拒绝），
+后面几行全部跳过 —— **120ms 的跟随定时器会永久泄漏**，图谱也不刷新。
+已把它们移进 `finally`。
+
+### 14.2 一个值得记的排查教训
+
+这轮排查绕了很久，因为前几次测试**全部误判**：
+
+| 观察 | 结论 | 真相 |
+|---|---|---|
+| 对话后 API=4、DOM=1 | 以为是 store 不同步 | 生成耗时 **30 秒**，我只等了 16–22 秒，`graph.load()` 还没执行 |
+| 清空后 API=4 | 以为是后端图谱有缓存 | 请求时序被我读反了；4 是上一条慢请求的响应当了清空后的结果 |
+
+用 `request`/`requestfinished` 打时间戳才看清：
+
+```
+t=3719ms   CHAT req
+t=30290ms  GRAPH req      ← 生成结束才发
+t=30300ms  CHAT finished
+t=30300ms  GRAPH res nodes=5
+```
+
+**教训**：验证异步链路必须以“业务完成信号”为准（此处是发送按钮从「停止」变回「发送」），
+而不是拍一个固定等待时间。等了 16 秒和等了 38 秒，观察对象根本不是同一个状态。
+
+最终验证（轮询到生成完成）：
+
+| 阶段 | API 节点 | DOM 节点 |
+|---|---|---|
+| 进入页面 | 5 | 5 |
+| 对话完成 | 7 | 7 |
+| 清空后 | 1 | 1 |
+
+### 14.3 引导咨询缺少「补充具体情境」
+
+**根因**：前端写死了排除。
+
+```vue
+<button v-if="!isGuided" class="composer__situation-toggle">补充具体情境</button>
+<textarea v-show="situationOpen && !isGuided" ... />
+```
+
+而后端**早就支持**引导模式下的情境：
+
+```python
+# guided_plan.py
+state.mode_situation = situation                      # 75
+if state.mode_situation:
+    problem_ctx += f"\n具体情境：{state.mode_situation}"  # 88-89
+report = _auto_advise(state.mode_problem, state.mode_situation)  # 142
+```
+
+它参与每轮引导的上下文，也参与最终「结束并生成建议」。
+前端把它藏起来，等于把一条已实现的能力屏蔽了。
+
+**修法**：去掉两处 `!isGuided`。情境是首条消息时锚定的，两种模式语义一致。
+
+实测：引导模式下按钮可见、输入框可展开、可正常填入。
+
+### 14.4 验证
+
+| 项 | 结果 |
+|---|---|
+| 对话后图谱同步 | API 7 / DOM 7 |
+| 清空后图谱清空 | API 1 / DOM 1 |
+| 引导模式情境输入 | 按钮可见、输入框可用 |
+| 单测 | 84 全绿 |
+| 无障碍 | axe 五视图 0 违规 |
+| 类型检查 / 构建 | 通过 |
+
+---
+
+## 15. 批次 O：全局密度 0.75 + 图谱默认缩放（2026-11-09）
+
+### 15.1 图谱首屏 300%
+
+**现象**：打开页面，图谱右下角显示 `300%`，一个孤立的「当前会话」节点被放大得很夸张。
+
+**根因**（`core/graph/engine.ts` 的 `zoomToFit`）：
+
+```ts
+const scale = Math.min(
+  (width - padding * 2) / w,
+  (height - padding * 2) / h,
+  MAX_SCALE,          // ← 3
+)
+```
+
+只有一个节点时，节点包围盒 `w`/`h` 很小，按容器算出来的比例远大于 1，
+于是被 `MAX_SCALE` 顶到 3 倍。**首屏自动适配不该放大**，只该缩小到装得下。
+
+**修法**：给 `zoomToFit` 加 `allowZoomIn` 选项，默认上限为 1。
+
+```ts
+zoomToFit(opts: { allowZoomIn?: boolean } = {}): void {
+  const cap = opts.allowZoomIn ? MAX_SCALE : 1
+  const clamped = Math.max(MIN_SCALE, Math.min(cap, scale))
+}
+```
+
+工具栏的「适应窗口」按钮传 `{ allowZoomIn: true }` —— 那是用户**主动要求**填满视口，
+与首屏被动适配是两种语义。
+
+实测：首屏 100%；点「适应窗口」300%（符合预期）；缩小窗口仍 100%（不因容器变小而膨胀）。
+
+### 15.2 全局密度 0.75
+
+**目标**：真实浏览器 100% 下，界面整体变为原先的 75%。
+
+**否决的方案：CSS `zoom: 0.75`**
+
+实测会产生横向溢出：`#app` 设 `zoom: 0.75` 后 `body.scrollWidth` 为 2000px，
+而视口只有 1500px。加 `width: 133%` 补偿后溢出依旧（布局按缩放前尺寸计算，
+再被 zoom 二次压缩，两者不抵消）。需要大量反算，且部分绝对定位组件会偏移。
+
+**采用的方案：令牌乘以密度系数**
+
+在 `tokens.css` 顶部引入单一参数：
+
+```css
+--density: 0.75;
+
+--fs-base: calc(15.5px * var(--density));   /* → 11.63px */
+--sp-4:    calc(16px   * var(--density));   /* → 12px */
+--r-lg:    calc(16px   * var(--density));   /* → 12px */
+--rail-w:  calc(224px  * var(--density));   /* → 168px */
+```
+
+调一处即可整体放大/收紧，不用逐个改数值。
+
+**不受影响的**：
+- 行高（无单位比例，字号变了比例仍成立）
+- `--r-pill`（999px）
+- `--measure: 76ch`（ch 随字号自动缩放）
+- 约 227 处硬编码 px —— 实测分布集中在 1–8px 的边框/微调值，本就不该参与密度调节
+
+### 15.3 一个明确的取舍：小字会变小
+
+严格 0.75 后，记录页关键词 chip 从 13px → **9.75px**，各类标签从 13–14.5px → 9.75–10.88px。
+实测全站 < 11px 的中文元素约 900 个，其中记录页 512 个
+（223 个关键词 chip、110 个字段标题、62 个操作按钮）。
+
+**这与上一轮「最小字号 13px」的结论直接冲突**，已向用户确认：**选择严格 0.75**。
+
+记录在此，避免以后有人把它当回归 bug 又重新调大：
+
+> 「小字扎眼」的原始问题是**字体栈把中文丢进了 mono 兜底**（已修，见批次 L §12.3），
+> 而不是单纯字号太小。修好字体栈后，9.75px 的中文虽然小，但笔画是实的，
+> 不再是灰雾。密度与可读性在这里是权衡，不是错误。
+
+如果日后要回调，只改 `--density` 一个值即可，例如 `0.85`。
+
+### 15.4 顺带修的
+
+侧栏 `.rail__item` 的 `padding: 11px 12px` 是硬编码，不随密度缩放，
+导致 168px 窄栏下「码字编辑」「检索调试」被挤断行。
+改为 `padding: var(--sp-3)` 并加 `white-space: nowrap`。
+
+### 15.5 验证
+
+| 项 | 结果 |
+|---|---|
+| 图谱首屏缩放 | 100%（原 300%） |
+| 「适应窗口」按钮 | 仍可放大到 300%（用户主动） |
+| 缩小窗口 | 仍 100%，不膨胀 |
+| 正文 / 标题 / 副标题 | 11.63 / 17.25 / 10.88px |
+| 侧栏宽度 | 224 → 168px，导航不换行 |
+| 横向溢出 | 无 |
+| 单测 | 84 全绿 |
+| 无障碍 | axe 五视图 0 违规 |
+| 类型检查 / 构建 | 通过 |
+
+### 15.6 补记：图谱没跟着缩放（2026-11-09）
+
+用户反馈"图谱似乎没有被缩放"。
+
+**根因**：图谱的尺寸有两处不走 CSS 令牌。
+
+| 项 | 来源 | 是否随密度 |
+|---|---|---|
+| 节点半径 | `glyphs.ts` 的 `GLYPH_RADIUS`（JS 常量） | ❌ |
+| 面板宽度 | `ChatView` 的 `GRAPH_DEFAULT = 380`（内联 style） | ❌ |
+
+CSS 里的 `--graph-pane-w` 令牌根本没被用到 —— 真实宽度来自 JS。
+于是界面整体缩到 75%，图谱还占着原来的宽度、节点还是原尺寸，
+视觉上"图谱没变小"。
+
+**修法**：
+
+```ts
+// glyphs.ts —— 导出统一的密度常量
+export const DENSITY = 0.75
+const BASE_RADIUS = { session: 26, memory: 19, document: 17, reason: 16 }
+export const GLYPH_RADIUS = { session: BASE_RADIUS.session * DENSITY, ... }
+
+// ChatView.vue
+const GRAPH_MIN = Math.round(280 * DENSITY)   // 210
+const GRAPH_MAX = Math.round(560 * DENSITY)   // 420
+const GRAPH_DEFAULT = Math.round(380 * DENSITY) // 285
+```
+
+**代价**：`DENSITY` 现在有两处（CSS 与 TS），改的时候必须同步。
+已在这两处都写明互相引用，但这是设计缺陷——根治需要运行时读 CSS 变量。
+
+实测：节点 74 → 55px，面板 380 → 285px。
+
+### 15.7 补记：编辑页底部留白回归（2026-11-09）
+
+用户反馈"编辑页又出现了底部留白的问题"。实测：编辑器只有 420px，
+操作栏之下到视口底有 **249px** 空白。
+
+这是一条纠缠了三轮的 CSS 链条，最终结论值得完整记下来：
+
+**约束链**：`.app-main(overflow:hidden)` → `.app-view(height:100%; overflow-y:auto)`
+→ `.editor-wrap(flex:1)` → `.md-editor` → `.cm-editor` → `.cm-scroller(overflow:visible)`
+
+**三代方案与各自的死法**：
+
+| 方案 | 结果 |
+|---|---|
+| `height: 100%`（批次 H 试过） | 编辑器高度被钉死，长文档溢出但 `.md-editor` 有 `overflow: hidden` 裁掉，页面滚不动 |
+| `min-height: inherit` | `inherit` 取父级**声明值**（`--editor-min-h` = 420px），不是父级被 flex 撑开后的**实际高度** → 外层 653px、内层仍 420px，底部留白 233px |
+| `min-height: 100%`（采用） | 100% 相对父级实际高度 → 短内容铺满、长内容自然增长 |
+
+**同时必须移除 `.md-editor` 的 `overflow: hidden`** —— 它本意只是裁圆角，
+却把长内容裁在了容器里，`.app-view` 的 `scrollHeight` 因此永远等于视口高，
+表现为"写长了滚不动"。改用 `background-clip: padding-box` 保留圆角。
+
+**另一处坑**：`.editor-wrap > .md-editor { min-height: 0 }` 会覆盖组件自己的
+420px 下限，空文档时编辑器塌成 56px 一条缝。必须显式写回 `var(--editor-min-h)`。
+
+实测：
+
+| 场景 | 结果 |
+|---|---|
+| 短内容（1 行） | 编辑器到操作栏 **10px**，无空白 |
+| 长内容（25 行，普通模式） | scrollHeight 975 > 950，可滚动 |
+| 长内容（60 行，专注模式） | scrollHeight 1964，滚到 400 正常 |
+
+**教训**：`height` / `min-height` / `overflow` 三者在这条链上耦合极紧，
+改一处必须连着验证「短内容是否铺满」与「长内容是否可滚」两个场景，
+只测一个必然漏掉另一半。
+
+### 15.8 补记：密度改造漏网的两处硬编码（2026-11-09）
+
+用户反馈"界面完全被弄坏了"：记录页所有记录文字、编辑框内文字变得很大。
+
+**根因**：`--density` 只作用于令牌，而**正文阅读区**有几处绕过了令牌直接写死 px：
+
+| 位置 | 原值 | 问题 |
+|---|---|---|
+| `MarkdownEditor` CodeMirror 主题 | `fontSize: '15px'` | 编辑器正文完全不随密度 |
+| `MarkdownEditor` 行号 | `fontSize: '11px'` | 同上 |
+| `ResultCard` 摘要 / 正文 | `14.5px` | 记录页最核心的阅读内容 |
+| `ResultCard` 对话记录 | `13.5px` | |
+| `DocumentPeek` 正文 | `15.5px` / `15px` / `14.5px` | 文档阅读页 |
+| `PickFromChat` 候选正文 | `14.5px` | 摘取面板 |
+
+界面其余部分缩到 75% 后是 9.75–11.6px，而这些**恰恰是最该跟着缩的正文**
+仍停在 14.5–15.5px —— 视觉上就是"框里的字特别大"。
+
+**修法**：全部换成令牌。
+
+```ts
+// MarkdownEditor：CodeMirror 主题里读 CSS 变量
+fontSize: v('--fs-base', '15px'),
+'.cm-gutters': { fontSize: v('--fs-2xs', '11px') }
+```
+```css
+/* CSS 侧 */
+.rc__summary { font-size: var(--fs-sm); }   /* 原 14.5px */
+.rc__body    { font-size: var(--fs-sm); }
+.rc__dlg-text{ font-size: var(--fs-xs); }
+```
+
+验证：全站写死的 `font-size: <数字>px` 已归零；五个视图字号范围统一为 **9.75–17.25px**。
+
+### 15.9 补记：周记无法滚动
+
+**根因**：上一节为 Daily 加的规则范围写宽了。
+
+```css
+.editor-wrap > :deep(.md-editor) { flex: 1 1 auto; }
+```
+
+Weekly 的三个编辑器也在同一个 `.editor-wrap` 里，被 `flex: 1` 一起撑成等高的大块，
+三层互相挤占，反而滚不动。
+
+**修法**：给 Weekly 的容器加区分类，把规则限定在 Daily。
+
+```vue
+<div v-else class="editor-wrap editor-wrap--weekly" ...>
+```
+```css
+.editor-wrap:not(.editor-wrap--weekly) > :deep(.md-editor) { flex: 1 1 auto; }
+```
+
+实测（三段各写 40 行）：scrollHeight 1543 / clientHeight 950，最大可滚 593，实际滚到 593。
+
+### 15.10 教训
+
+密度改造这类"全局比例"改动，最容易被**绕过令牌的硬编码**破坏，
+而且是"该缩的没缩"，从代码里看不出问题——只能靠实测比对。
+排查方式：先列出所有 `font-size: <数字>px` 逐个判断该不该走令牌，
+再用脚本比对各视图的字号范围是否一致。
+
+本次自检命令（保留作常规检查）：
+
+```bash
+grep -rn "font-size: [0-9]" src/ --include=*.vue --include=*.css | grep -v "var(--"
+```
+
+### 15.11 补记：周记第三个输入框被操作栏压住（2026-11-09）
+
+用户描述得很准确："第三个输入框永远会被底部保存重叠"。
+
+**真因**（比前两次猜的都对）：
+
+```css
+.editor-wrap {
+  flex: 1 1 auto;   /* ← 第二个 1 是 flex-shrink */
+  min-height: 0;    /* ← 允许被压缩到任意小 */
+}
+```
+
+`.editor-wrap` 被 **压缩**到视口高度（753px），而内部周记三段共 1307px 溢出到容器之外。
+溢出的内容不参与父级的 `scrollHeight` 计算，于是：
+
+| 元素 | 实测位置 | 说明 |
+|---|---|---|
+| `.editor-wrap` | 高 753（内容 1307） | 被压扁，溢出 554px |
+| `.actions` | top 419 | 按容器高度排布，**浮在内容中间** |
+| `.app-view` | scrollHeight 1431 | 比实际内容少算 554px |
+
+所以第三个编辑器被操作栏盖住了，而且滚不到它下面。
+
+**修法**：
+
+```css
+.editor-wrap {
+  flex: 1 0 auto;   /* grow 1，shrink 0 —— 禁止被压缩 */
+  /* 移除 min-height: 0 */
+}
+```
+
+修后：wrap 高 1307 = 内容高，actions top 973，scrollHeight 1504，可滚 554px，滚到底正常。
+
+### 15.12 这轮排查为什么反复
+
+前两轮我都"测试通过"却仍然坏，因为**测法不对**：
+
+| 轮次 | 我测的 | 漏掉的 |
+|---|---|---|
+| 第一轮 | `scrollTop = N` 编程赋值 | 编程赋值不受 CSS 布局影响，永远"成功" |
+| 第二轮 | 滚轮在**页面中央** | 中央可能是空白区，事件由 `.app-view` 接住，而编辑器区域被压扁后根本没覆盖到 |
+| 第三轮 | 滚轮在**编辑器内** | 终于复现：内容溢出容器 → 编辑器实际位置与预期不符 |
+
+关键教训：**验证滚动必须用真实滚轮事件 + 明确的目标坐标**，
+并同时检查 `元素高度 == 其内容高度`（不等就说明被压缩，溢出部分不可滚也不可见）。
+
+一条可用于自检的判据：
+
+```js
+wrap.getBoundingClientRect().height === wrap.scrollHeight   // 相等才说明没被压缩
+```
+
+### 15.13 验证
+
+| 场景 | 结果 |
+|---|---|
+| Weekly 三段各 15 行 | wrap 1307 = 内容高，操作栏 top 973，可滚 554px ✓ |
+| Daily 短内容 | 编辑器铺满 653px，到操作栏间距 9px ✓ |
+| Daily 长内容（40 行） | scrollHeight 1209，可滚 259px ✓ |
+| 专注模式（50 行） | scrollHeight 1336，可滚 386px ✓ |
+| 单测 / a11y | 84 全绿 / 0 违规 ✓ |

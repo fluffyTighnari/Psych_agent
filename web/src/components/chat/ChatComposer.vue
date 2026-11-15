@@ -175,7 +175,6 @@ defineExpose({ focusInput })
 
       <div class="composer__actions">
         <button
-          v-if="!isGuided"
           type="button"
           class="composer__situation-toggle"
           :aria-expanded="situationOpen"
@@ -209,9 +208,14 @@ defineExpose({ focusInput })
       </div>
     </div>
 
-    <!-- 情境输入 -->
+    <!--
+      情境输入。引导模式同样需要 ——
+      后端 guided_plan 会把它拼进 problem_ctx（`具体情境：…`），
+      并参与最终的「结束并生成建议」。原先这里对引导模式整块隐藏，
+      等于把一条后端已支持的能力藏了起来。
+    -->
     <textarea
-      v-show="situationOpen && !isGuided"
+      v-show="situationOpen"
       v-model="situation"
       class="composer__situation"
       rows="2"
