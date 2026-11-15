@@ -14,27 +14,27 @@
 
 ---
 
-平凡的一天，你轻轻走过拂起的微风托着枫叶缓缓飘落
-多彩的一周，你静静深思落下的种子衬着柔光逐渐萌发
-翻起曾被抛之脑后的旧页，对话框前叙述着或是困惑，或是理想
-当背后看似没有感情的参数用你的体悟、你的过去让你的内心再度荡起涟漪
-让文字带你拾起你心底的那份真挚
+平凡的一天，你轻轻走过拂起的微风托着枫叶缓缓飘落  
+多彩的一周，你静静深思落下的种子衬着柔光逐渐萌发  
+翻起曾被抛之脑后的旧页，对话框前叙述着或是困惑，或是理想  
+当背后看似没有感情的参数用你的体悟、你的过去让你的内心再度荡起涟漪  
+让文字带你拾起你心底的那份真挚  
 
-——每一天，用日记随记当下的经历与感受
-每一段日子，尝试让你的内心短暂驻足，用周复盘 问题-分析-解决策略 可视化自己的成长
-每一次寻知，用咨询带你冲出雾霭
-每一次不安或迷茫，用引导带你走进你的内心
+——每一天，用日记随记当下的经历与感受  
+每一段日子，尝试让你的内心短暂驻足，用周复盘 问题-分析-解决策略 可视化自己的成长  
+每一次寻知，用咨询带你冲出雾霭  
+每一次不安或迷茫，用引导带你走进你的内心  
 
-*An ordinary day—you pass gently by; the stirred breeze carries maple leaves drifting slowly down.*
-*A colorful week—you quietly reflect; fallen seeds, touched by soft light, gradually sprout.*
-*Turn again to old pages once cast from mind; before the dialogue box, you speak of confusion, or of ideals.*
-*When the seemingly emotionless parameters behind it all use your insights and your past to set ripples moving in your heart once more.*
-*Let words lead you to gather up the sincerity deep within.*
+*An ordinary day—you pass gently by; the stirred breeze carries maple leaves drifting slowly down.*  
+*A colorful week—you quietly reflect; fallen seeds, touched by soft light, gradually sprout.*  
+*Turn again to old pages once cast from mind; before the dialogue box, you speak of confusion, or of ideals.*  
+*When the seemingly emotionless parameters behind it all use your insights and your past to set ripples moving in your heart once more.*  
+*Let words lead you to gather up the sincerity deep within.*  
 
-*——Every day, use a diary to capture your experiences and feelings of the moment.*
-*For each stretch of days, let your heart pause briefly; use a weekly review—problem–analysis–solution strategy—to visualize your growth.*
-*Each time you seek knowledge, let consultation carry you out of the haze.*
-*Whenever you feel uneasy or lost, let guidance lead you into your inner world.*
+*——Every day, use a diary to capture your experiences and feelings of the moment.*  
+*For each stretch of days, let your heart pause briefly; use a weekly review—problem–analysis–solution strategy—to visualize your growth.*  
+*Each time you seek knowledge, let consultation carry you out of the haze.*  
+*Whenever you feel uneasy or lost, let guidance lead you into your inner world.*  
 
 心迹，是心走过的痕迹。它不催促你，也不替你下结论。
 
