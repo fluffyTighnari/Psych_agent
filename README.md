@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/brand/xinji-logo-full-transparent-2048.png" width="240" alt="心迹 Psych Journal">
-</p>
-
 <h1 align="center">心迹 · Psych Journal</h1>
 
 <p align="center"><em>日记 · 复盘 · 记忆 · 引导 · 成长</em><br>
@@ -122,10 +118,10 @@ python main.py
 ## 界面一角 · A glance
 
 <p align="center">
-  <img src="assets/brand/show.png" width="680" alt="心迹主对话与关联图谱">
+  <img src="docs/images/readme-fullpage.png" width="1100" alt="心迹完整页面：主对话与关联图谱">
 </p>
 
-<p align="center"><sub>主对话与关联图谱 · Conversation and connected notes</sub></p>
+<p align="center"><sub>完整页面：主对话与关联图谱 · Full desktop page: conversation and connected notes</sub></p>
 
 ---
 
